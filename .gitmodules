@@ -1,3 +1,29 @@
 [submodule "vendor/cucumber"]
 	path = vendor/cucumber
 	url = https://github.com/michaelklishin/cucumber.el.git
+
+[submodule "vendor/textmate.el"]
+	path = vendor/textmate.el
+	url = https://github.com/defunkt/textmate.el.git
+
+
+
+
+[submodule "vendor/auto-complete"]
+	path = vendor/auto-complete
+	url = https://github.com/m2ym/auto-complete.git
+[submodule "vendor/haml-mode"]
+	path = vendor/haml-mode
+	url = https://github.com/nex3/haml-mode.git
+[submodule "vendor/sass-mode"]
+	path = vendor/sass-mode
+	url = https://github.com/nex3/sass-mode.git
+[submodule "vendor/git-emacs"]
+	path = vendor/git-emacs
+	url = https://github.com/tsgates/git-emacs.git
+[submodule "vendor/yaml-mode"]
+	path = vendor/yaml-mode
+	url = https://github.com/yoshiki/yaml-mode.git
+[submodule "vendor/rspec-mode"]
+	path = vendor/rspec-mode
+	url = https://github.com/pezra/rspec-mode.git

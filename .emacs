@@ -10,9 +10,11 @@
 (add-to-list 'load-path "~/.emacs.d/vendor/color-theme/")
 (add-to-list 'load-path "~/.emacs.d/yasnippet-0.6.1c")
 (add-to-list 'load-path "~/.emacs.d/rspec-mode")
-(add-to-list 'load-path "~/.emacs.d/auto-complete")
+(add-to-list 'load-path "~/.emacs.d/vendor/auto-complete")
+(add-to-list 'load-path "~/.emacs.d/vendor/cucumber")
+(add-to-list 'load-path "~/.emacs.d/vendor/textmate.el")
 (add-to-list 'load-path "~/.emacs.d/git-emacs") 
-(add-to-list 'load-path "~/.emacs.d/feature-mode")
+
 
 ;(add-to-list 'load-path "~/.emacs.d/muse-el/")
 (setenv "PATH" (concat "/opt/l ocal/bin:/usr/local/bin:/usr/local/git/bin" (getenv "PATH")))
@@ -302,6 +304,6 @@
     (setq exec-path (split-string path-from-shell path-separator))))
 
 
-(add-to-list 'load-path "~/.emacs.d/vendor/textmate.el")
+
 (require 'textmate)
 (textmate-mode)
