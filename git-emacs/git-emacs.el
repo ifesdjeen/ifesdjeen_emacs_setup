@@ -5,7 +5,7 @@
 ;; v.1.4.3 Modified by ovy            @ 20 September 2009
 ;; v.1.4   Modified by ovy            @ 22 March 2009
 ;; v.1.3   Modified by Con Digitalpit @ 29 March 2008
-;; 
+;;
 ;; Authors    : TSKim : Kim Taesoo(tsgatesv@gmail.com)
 ;; Created    : 24 March 2007
 ;; License    : GPL
@@ -38,38 +38,37 @@
 ;;
 ;;; Commentary:
 ;;
-;; I referenced a lot of codes such as under
+;; Some related packages were used directly or as inspiration:
 ;;   - psvn.el (Stefan Reichoer)
 ;;   - vc-git.el (Alexandre Julliard)
 ;;   - git.el (Alexandre Julliard)
 ;;   - ido.el (Kim F. Storm)
-;;   - ... 
-;;   
+;;   - ...
+;;
 ;;; Installation
+;;
+;; First, make sure that vc-git.el is in your load path. Emacs 23 ships it by
+;; default, for older versions you can get it from git distributions prior
+;; to 1.6.x.
 ;; 
 ;; 1) Load at startup (simplest)
-;; 
+;;
 ;; (add-to-list 'load-path "~/.emacs.d/git-emacs")  ; or your installation path
 ;; (require 'git-emacs)
-;; 
+;;
 ;; 2) Autoload (slimmer statup footprint, will activate when visiting a git
 ;;   file or running some top-level functions)
-;; 
+;;
 ;; (add-to-list 'load-path "~/.emacs.d/git-emacs") ; or your installation path
 ;; (fmakunbound 'git-status)   ; Possibly remove Debian's autoloaded version
 ;; (require 'git-emacs-autoloads)
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;;; BUG FIXES
-;;   2008.03.28 : git-diff just work on git root
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
 ;; TODO : check git environment
 ;; TODO : status -> index
 ;; TODO : pull/patch
-;; TODO : fetching 
+;; TODO : fetching
 ;; TODO : regular exp selecting
 ;; TODO : enhance config! & tag!
 ;; TODO : save -> status-view update
@@ -79,7 +78,7 @@
 ;; TODO : () -> fording/unfording for detail
 ;; TODO : show ignored files
 ;; TODO : locally flyspell
-;; 
+;;
 ;; DONE : turn off ido-mode globally
 ;; DONE : git-add
 ;; DONE : remote branch list
@@ -96,7 +95,7 @@
 (require 'git-global-keys)              ; global keyboard mappings
 (require 'git-emacs-autoloads)          ; the minimal autoloads
 
-;; Autoloaded submodules, those not declared in git-emacs autoloads
+;; Autoloaded submodules, those not declared in git-emacs-autoloads
 
 (autoload 'git-blame-mode "git-blame"
   "Minor mode for incremental blame for Git" t)
@@ -123,7 +122,7 @@
   :group 'tools)
 
 (defcustom git--use-ido t
-  "Use ido for Git prompts. Affects the default of `git--completing-read'."
+  "Whether to use ido completion for git-emacs prompts."
   :type '(boolean)
   :group 'git-emacs)
 
@@ -131,9 +130,12 @@
   (if git--use-ido
       (progn
         (require 'ido)
+        ;; But this is not enough apparently. We need to strobe ido-mode
+        ;; for ido-completing-read to work. Ugh.
+        (unless ido-mode (ido-mode t) (ido-mode -1))
         #'ido-completing-read)
     #'completing-read)
-  "Function to use for git minibuffer prompts with choices. It should have
+  "Function to use for git-emacs minibuffer prompts with choices. It should have
 the signature of `completing-read'.")
 
 (defgroup git-emacs-faces nil
@@ -152,13 +154,15 @@ the signature of `completing-read'.")
 
 (defsubst git--bold-face (str) (propertize str 'face 'git--bold-face))
 
-(defconst git--msg-critical  (propertize "Critical Error" 'face 'git--bold-face))
-(defconst git--msg-failed    (propertize "Failed" 'face 'git--bold-face))
+(defconst git--msg-critical (propertize "Critical Error" 'face 'git--bold-face))
+(defconst git--msg-failed (propertize "Failed" 'face 'git--bold-face))
 
 ;;-----------------------------------------------------------------------------
-;; internal variable
+;; Internal variables.
 ;;-----------------------------------------------------------------------------
 
+
+(defvar git--executable "git" "Main git executable")
 (defvar git--commit-log-buffer "*git commit*")
 (defvar git--log-flyspell-mode t "enable flyspell-mode when editing log")
 (defvar git--repository-bookmarks
@@ -192,23 +196,18 @@ the signature of `completing-read'.")
 
 
 ;;-----------------------------------------------------------------------------
-;; fork git process
+;; Low-level execution functions.
 ;;-----------------------------------------------------------------------------
 
 (defsubst git--exec (cmd outbuf infile &rest args)
-  "Execute 'git' clumsily"
-
-  (apply #'call-process
-         "git"                          ; cmd
-         infile                         ; in file
-         outbuf                         ; out buffer
-         nil                            ; display
-         (cons cmd args)))              ; args
+  "Low level function for calling git. CMD is the main git subcommand, args
+are the remaining args. See `call-process' for the meaning of OUTBUF and
+INFILE. Reeturns git's exit code."
+  (apply #'call-process git--executable infile outbuf nil (cons cmd args)))
 
 (defun git--exec-pipe (cmd input &rest args)
-  "Execute 'echo input | git cmd args' and return result
-string. INPUT can also be a buffer."
-
+  "Execute 'git cmd args', piping INPUT (which can be a buffer or string).
+Return result string."
   (with-output-to-string
     (with-current-buffer standard-output
       (let ((tmp (make-temp-file "git-emacs-tmp")))
@@ -220,37 +219,32 @@ string. INPUT can also be a buffer."
                 (with-temp-buffer
                   (insert input)
                   (write-file tmp)))
-              ;; tricky hide write to file message
-              (message "")
+              (message "")              ;hide write to file message
               (apply #'git--exec cmd t tmp args))
           (delete-file tmp))))))
 
 (defsubst git--exec-buffer (cmd &rest args)
   "Execute 'git' within the buffer. Return the exit code."
-  
   (apply #'git--exec cmd t nil args))
 
 (defsubst git--exec-string-no-error (cmd &rest args)
-  "Execute 'git' and return result string (which may be a failure message)."
+  "Execute 'git CMD ARGS' and return result string, which may be
+a failure message."
   (with-output-to-string
     (with-current-buffer standard-output
       (apply #'git--exec-buffer cmd args))))
 
-(defsubst git--trim-string (str)
-  "Trim the front and rear part of the string"
-  
+(defun git--trim-string (str)
+  "Trim the spaces / newlines from the beginning and end of STR."
   (let ((begin 0) (end (- (length str) 1)))
-
     ;; trim front
     (while (and (< begin end)
                 (memq (aref str begin) '(? ?\n)))
       (incf begin))
-
     ;; trim rear
     (while (and (<= begin end)
                 (memq (aref str end) '(? ?\n)))
       (decf end))
-
     (substring str begin (+ end 1))))
 
 (defun git--exec-string (cmd &rest args)
@@ -262,29 +256,62 @@ if it fails. If the command succeeds, returns the git output."
                   (apply #'git--exec-buffer cmd args))
         (error "%s" (git--trim-string (buffer-string)))))))
 
+
+;; This is nasty: the git devs changed the meaning of "git status" in git
+;; 1.7, but commit --dry-run is not available in older git. Thanks much
+;; guys -- I get to learn to learn how to do horrible hacks like this.
+;; Hopefully the messages aren't translated or something.
+(defun git--commit-dryrun-compat(outbuf &rest args)
+  "Executes commit --dry-run with the specified args, falls back to the
+older git status if that command is not present. If OUTBUF is not nil, puts
+the standard output there. Returns the git return code."
+  ;; Going forward, this will simply succeed.
+  (let ((rc (apply #'git--exec "commit" (list outbuf nil) nil
+                   "--dry-run" args)))
+    (when (eq rc 129)
+      ;; gotta distinguish between bad args or no --dry-run.
+      (let ((has-dry-run
+             (string-match
+              "--dry-run"
+              (git--exec-string-no-error "commit" "--no-such-arg-show-help"))))
+        (unless has-dry-run
+          (setq rc (apply #'git--exec "status" outbuf nil args)))))
+    rc))
+
+
 ;;-----------------------------------------------------------------------------
 ;; utilities
 ;;-----------------------------------------------------------------------------
 
-(defsubst git--trim-tail (str)
-  "Trim only the tail of the string"
-  
+(defun git--trim-tail (str)
+  "Trim spaces / newlines from the end of STR."
   (let ((end (- (length str) 1)))
-
     (while (and (< 0 end)
                 (memq (aref str end) '(? ?\n)))
       (decf end))
-
     (substring str 0 (+ end 1))))
 
-(defsubst git--join (seq &optional sep)
-  "' '.join( seq ) in python"
+(defun git--pop-to-buffer(buffer)
+  "Wrapper around `pop-to-buffer', stores window configuration
+from before `pop-to-buffer' call for later restoration. Every
+buffer popped to with this function will have a local
+`kill-buffer-hook' to restore previous window configuration."
+  (let ((git--saved-window-configuration (current-window-configuration))
+        (popped-buffer (pop-to-buffer buffer)))
+    (with-current-buffer popped-buffer
+      (add-hook 'kill-buffer-hook
+                (lexical-let ((saved-config git--saved-window-configuration))
+                  #'(lambda()
+                      (set-window-configuration saved-config)
+                      )) nil t)) ;; !append local
+    popped-buffer))
 
+(defsubst git--join (seq &optional sep)
+  "Joins the strings in SEQ with the SEP (defaults to blank)."
   (mapconcat #'identity seq (if sep sep " ")))
 
 (defsubst git--concat-path-only (path added)
   "Concatenate the path with proper separator"
-  
   (concat (file-name-as-directory path) added))
 
 (defsubst git--concat-path (path added)
@@ -294,13 +321,15 @@ if it fails. If the command succeeds, returns the git output."
   (git--concat-path dir git--repository-dir))
 
 (defun git--quit-buffer ()
-  "Delete the window and kill the current buffer"
-
+  "Kill the current buffer, calls `kill-buffer'. Every
+  buffer popped with `git--pop-to-buffer' will restore previous
+  window-configuration when killed."
   (interactive)
-  (let ((buffer (current-buffer)))
-    ;; Emacs refuses to delete a "maximized" window (i.e. just 1 in frame)
-    (unless (one-window-p t) (delete-window))
-    (kill-buffer buffer)))
+  (kill-buffer))
+
+(defsubst git--rev-parse (&rest args)
+  "Execute 'git rev-parse ARGS', return result string."
+  (apply #'git--exec-string "rev-parse" args))
 
 (defmacro git-in-lowest-existing-dir (dir &rest BODY)
   "Runs \"BODY\" with `default-directory' set to the nearest
@@ -322,10 +351,23 @@ let the user see the invalid directory error."
                             default-directory)))
           (setq default-directory parent)))
       ,@BODY))
-  
-(defsubst git--interpret-to-state-symbol (stat)
-  "Interpret git state string to state symbol"
 
+(defmacro git--if-in-status-mode (THEN &rest ELSE)
+  "Macro that evaluates THEN when in git-status-mode, ELSE otherwise. Used to
+grab status-mode filelists without the compiler complaining about the
+autoloading which we know has already happened."
+  `(if (eq major-mode 'git-status-mode)
+       (progn (eval-when-compile (require 'git-status)) ,THEN)
+     ,@ELSE))
+
+(defun git--get-top-dir (&optional dir)
+  "Get the top-level git directory above DIR. If nil, use default-directory."
+  (git-in-lowest-existing-dir dir
+   (let ((cdup (git--rev-parse "--show-cdup")))
+     (git--concat-path default-directory (car (split-string cdup "\n"))))))
+
+(defsubst git--interpret-to-state-symbol (stat)
+  "Interpret a one-letter git state string to our state symbols."
   (case (string-to-char stat)
     (?H 'uptodate )
     (?M 'modified )
@@ -393,15 +435,28 @@ repository), a list (filelist) or nil (current git repository)."
    (t (git--find-buffers-from-file-list repo-or-filelist predicate))))
 
 (defun git--maybe-ask-save (&optional repo-or-filelist)
-  "If there are modified buffers which visit files in the given REPO-OR-FILELIST,
-ask to save them. If REPO-OR-FILELIST is nil, look for buffers in
-the current git repo. Returns the number of buffers saved."
+  "If there are modified buffers which visit files in the given
+REPO-OR-FILELIST,ask to save them. If REPO-OR-FILELIST is nil,
+look for buffers in the current git repo. Returns the number of
+buffers saved."
   (let ((buffers (git--find-buffers repo-or-filelist  #'buffer-modified-p)))
     (map-y-or-n-p
      (lambda(buffer) (format "Save %s? " (buffer-name buffer)))
      (lambda(buffer) (with-current-buffer buffer (save-buffer)))
      buffers
      '("buffer" "buffers" "save"))))
+
+(defcustom git-working-dir-change-behaviour
+  'git-ask-for-all-saved
+  "Controls the buffer-refreshing behaviour after a git working dir change
+ (e.g. branch switch), when there are buffers visiting files that
+ have been modified by the change."
+  :type '(radio (const :tag "Ask about refreshing all saved buffers"
+                       git-ask-for-all-saved)
+                (const :tag "Refresh all saved buffers"
+                       git-refresh-all-saved)
+                (const :tag "Don't refresh" nil))
+  :group 'git-emacs)
 
 (defun git-after-working-dir-change (&optional repo-or-filelist)
   "This function should be called after a change to the git working dir.
@@ -416,40 +471,63 @@ visiting files that no longer exist."
                   repo-or-filelist
                   #'(lambda(buffer)
                       (not (verify-visited-file-modtime buffer)))))
-        (buffers-that-exist nil) (buffers-that-dont-exist nil))
+        (buffers-that-exist nil) (buffers-that-dont-exist nil)
+        (num-buffers-refreshed 0))
     (dolist (buffer buffers)
       (if (file-exists-p (buffer-file-name buffer))
           (push buffer buffers-that-exist)
         (push buffer buffers-that-dont-exist)))
     ;; Revert buffers that exist
     (unwind-protect
-        (let ((buffers-not-reverted (copy-sequence buffers-that-exist)))
-          ;; Do the state mark update if the user quits the revert prompts.
-          (unwind-protect
-              (map-y-or-n-p
-               (lambda(buffer) (format "%s has changed, refresh buffer? "
-                                       (buffer-name buffer)))
-               (lambda(buffer)
-                 (with-current-buffer buffer (revert-buffer t t))
-                 ;; A hash table is probably not worth it here.
-                 (setq buffers-not-reverted (delq buffer buffers-not-reverted)))
-               buffers-that-exist
-               '("buffer" "buffers" "refresh"))
-            (when buffers-not-reverted
-              (git--update-all-state-marks (mapcar #'buffer-file-name
-                                                   buffers-not-reverted))))
+        (let ((buffers-not-reverted (copy-sequence buffers-that-exist))
+              buffers-that-exist-unsaved buffers-that-exist-saved)
+          (flet ((buffer-refresh-func (buffer)
+                  (with-current-buffer buffer (revert-buffer t t))
+                  ;; A hash table is probably not worth it here.
+                  (setq buffers-not-reverted
+                        (delq buffer buffers-not-reverted))
+                  (incf num-buffers-refreshed)))
+            ;; Filter buffers by their saved status.
+            (dolist (buffer buffers-that-exist)
+              (if (buffer-modified-p buffer)
+                  (push buffer buffers-that-exist-unsaved)
+                (push buffer buffers-that-exist-saved)))
+            ;; Do the state mark update if the user quits the revert prompts.
+            ;; Or, on all unsaved buffers.
+            (unwind-protect
+                (case git-working-dir-change-behaviour
+                  ('git-ask-for-all-saved
+                   (map-y-or-n-p
+                    (lambda(buffer) (format "%s has changed, refresh buffer? "
+                                            (buffer-name buffer)))
+                    #'buffer-refresh-func
+                    buffers-that-exist-saved
+                    '("buffer" "buffers" "refresh")))
+                  ('git-refresh-all-saved
+                   (mapc #'buffer-refresh-func buffers-that-exist-saved)))
+              (when buffers-not-reverted
+                (git--update-all-state-marks (mapcar #'buffer-file-name
+                                                   buffers-not-reverted)))))
           ;; Refresh status buffer
           (git--if-in-status-mode (git--status-view-refresh)))
-      ;; But display the [important] files don't exist warning on failure / quit
-      (when buffers-that-dont-exist
-       (message "Note: some open files no longer exist: %s"
-                (git--join
-                 (let ((numfiles (length buffers-that-dont-exist)))
-                   (if (> numfiles 2)
+      ;; But display the [important] files don't exist / buffers refreshed
+      ;; warnings on failure / quit
+      (let ((submessages
+             (append
+              (when (> num-buffers-refreshed 0)
+                (list (format "%d buffers refreshed" num-buffers-refreshed)))
+              (when buffers-that-dont-exist
+                (list
+                 (format "some open files no longer exist: %s"
+                   (git--join
+                    (let ((numfiles (length buffers-that-dont-exist)))
+                      (if (> numfiles 2)
                        (list (buffer-name (first buffers-that-dont-exist))
                              (format "%d others" (- numfiles 1)))
-                     (mapcar #'buffer-name buffers-that-dont-exist)))
-                 ", "))))))
+                       (mapcar #'buffer-name buffers-that-dont-exist)))
+                    ", ")))))))
+        (when submessages
+          (message "Note: %s" (git--join submessages "; ")))))))
 
 ;; This belongs later with all the commit functions, but the compiler complains
 ;; in git-log if we don't define it before its first use.
@@ -464,10 +542,11 @@ runs git commit --amend -a, alowing an update of the previous commit."
 ;;-----------------------------------------------------------------------------
 
 ;; ewoc file info structure for each list element
-(defstruct (git--fileinfo 
+(defstruct (git--fileinfo
             (:copier nil)
             (:constructor git--create-fileinfo
-                          (name type &optional sha1 perm marked stat size refresh))
+                          (name type &optional sha1 perm marked
+                                               stat size refresh))
             (:conc-name git--fileinfo->))
   marked   ;; t/nil
   expanded ;; t/nil
@@ -517,33 +596,23 @@ properly expanded tree."
         (string< (git--fileinfo->name info1)
                  (git--fileinfo->name info2))))))
 
-(defmacro git--if-in-status-mode (THEN &rest ELSE)
-  "Macro that evaluates THEN when in git-status-mode, ELSE otherwise. Used to
-grab status-mode filelists without the compiler complaining about the
-autoloading which we know has already happened."
-  `(if (eq major-mode 'git-status-mode)
-       (progn (eval-when-compile (require 'git-status)) ,THEN)
-     ,@ELSE))
 
 ;;-----------------------------------------------------------------------------
-;; git execute command
+;; git commands
 ;;-----------------------------------------------------------------------------
 
 (defun git--init (dir)
-  "Execute 'git-init' at 'dir' directory"
-  
+  "Execute 'git init' in DIR (current dir, if unspecified)."
   (with-temp-buffer
     (when dir (cd dir))
     (git--exec-string "init")))
 
 (defun git--checkout (&rest args)
-  "git checkout 'git-checkout' with 'args'"
-
+  "Execute 'git checkout ARGS' and return resulting string."
   (apply #'git--exec-string "checkout" args))
 
-(defun git--clone-sentinal (proc stat)
-  "git clone process sentinal"
-  
+(defun git--clone-sentinel (proc stat)
+  "Process sentinel for 'git clone' processes."
   (let ((cmd (git--join (process-command proc))))
     (cond ((string= stat "finished\n")
            (message "%s : %s" (git--bold-face "Cloned") cmd))
@@ -554,50 +623,41 @@ autoloading which we know has already happened."
            (message "%s : %s" git--msg-critical cmd)))))
 
 (defun git--clone (&rest args)
-  "Execute 'git-clone' with 'args' and set sentinal
-and finally 'git--clone-sentinal' is called"
-
-  (let ((proc (apply #'start-process "git-clone" nil "git-clone" args)))
-    (set-process-sentinel proc 'git--clone-sentinal)
+  "Execute 'git clone ARGS', with a process sentinel showing status."
+  (let ((proc (apply #'start-process "git-clone" nil "git" "clone" args)))
+    (set-process-sentinel proc 'git--clone-sentinel)
     (message "%s : %s"
              (git--bold-face "Run")
              (git--join (process-command proc)))))
 
 (defun git--commit (msg &rest args)
-  "Execute 'git-commit' with 'args' and pipe the 'msg' string"
-
+  "Execute 'git commit ARGS',  pipe the MSG string"
   (git--trim-string
    (apply #'git--exec-pipe "commit" msg "-F" "-" args)))
 
 (defun git--reset (&rest args)
-  "Execute 'git-rest' with 'args' and return the result as string"
-  
+  "Execute 'git reset ARGS', return the result string."
   (apply #'git--exec-string "reset" args))
 
-(defsubst git--config (&rest args)
-  "Execute git-config with args"
-
-  (git--trim-string (apply #'git--exec-string "config" args)))
+(defun git--config (&rest args)
+  "Execute 'git config ARGS', return the result string. Return empty
+if git config fails (behaviour if unconfigured as of version 1.7.1)."
+  (condition-case nil
+      (git--trim-string (apply #'git--exec-string "config" args))
+    (error "")))
 
 (defun git--add (files)
-  "Execute git-add for each files"
-  
+  "Execute 'git add' with the sequence FILES."
   (when (stringp files) (setq files (list files)))
   (apply #'git--exec-string "add" files))
 
 (defun git--mv (src dst)
-  "Execute git-mv for src and dst"
+  "Execute git mv for SRC and DST files."
   (git--exec-string "mv" src dst))
 
 (defun git--tag (&rest args)
-  "Execute 'git-tag' with 'args' and return the result as string"
-
+  "Execute 'git tag ARGS', return the result as string."
   (apply #'git--exec-string "tag" args))
-
-(defsubst git--rev-parse (&rest args)
-  "Execute 'git-rev-parse' with args and return as string"
-
-  (apply #'git--exec-string "rev-parse" args))
 
 (defvar git--tag-history nil "History variable for tags entered by user.")
 
@@ -606,7 +666,6 @@ and finally 'git--clone-sentinal' is called"
   "Create a new tag for the current commit, or a specified one.
 git-snapshot is an alias to this. Returns the previous target of the tag,
 nil if none."
-
   (interactive)
   (let* ((friendly-commit (if commit (git--bold-face commit)
                             "current tree"))
@@ -628,11 +687,10 @@ nil if none."
 
 (defun git--tag-list ()
   "Get the list of known git tags, which may not always refer to commit objects"
-
   (split-string (git--tag "-l") "\n" t))
 
 (defsubst git--diff-raw (args &rest files)
-  "Execute 'git-diff --raw' with 'args' and 'files' at current buffer. This
+  "Execute 'git diff --raw' with 'args' and 'files' at current buffer. This
 gives, essentially, file status."
   ;; git-diff abbreviates by default, and also produces a diff.
   (apply #'git--exec-buffer "diff" "-z" "--full-index" "--raw" "--abbrev=40"
@@ -687,49 +745,35 @@ gives, essentially, file status."
 
     fileinfo))
 
-(defsubst git--symbolic-ref (arg)
-  "Execute git-symbolic-ref with 'arg' and return sha1 string"
-
-  (car (split-string (git--exec-string "symbolic-ref" arg) "\n")))
+(defun git--symbolic-ref (arg)
+  "Execute 'git symbolic-ref ARG' and return the sha1 string, or nil if the
+arg is not a symbolic ref."
+  (let ((commit (git--exec-string-no-error "symbolic-ref" "-q" arg)))
+    (when  (> (length commit) 0)
+      (car (split-string commit"\n")))))
 
 (defun git--current-branch ()
-  "Execute git-symbolic-ref of 'HEAD' and return branch name string"
-
+  "Execute 'git symbolic-ref'HEAD' and return branch name string. Returns
+nil if there is no current branch."
   (let ((branch (git-in-lowest-existing-dir nil (git--symbolic-ref "HEAD"))))
-    (if (string-match "^refs/heads/" branch)
-        (substring branch (match-end 0))
-      branch)))
-
-(defsubst git--rev-list (&rest args)
-  "Execute git-rev-list with 'arg' and print the result to the current buffer"
-  
-  (apply #'git--exec-buffer "rev-list" args))
+    (when branch
+      (if (string-match "^refs/heads/" branch)
+          (substring branch (match-end 0))
+        branch))))
 
 (defsubst git--log (&rest args)
-  "Execute git-log with 'arg' and return result string"
-
+  "Execute 'git log ARGS' and return result string"
   (apply #'git--exec-string "log" "-z" args))
 
-(defsubst git--last-log ()
-  "Get the last log"
-  
-  (git--log "--max-count=1" "--pretty=full"))
-
 (defsubst git--last-log-short ()
-  "Get the last log as short form"
-  
-  (git--trim-string (git--log "--max-count=1" "--pretty=oneline")))
+  "Get the last log, as one line: <short_commit> <short_msg>"
+  (git--trim-string (git--log "--max-count=1" "--pretty=oneline"
+                              "--abbrev-commit")))
 
 (defsubst git--last-log-message ()
   "Return the last commit message, as a possibly multiline string, with an "
   "ending newline,"
   (git--log "--max-count=1" "--pretty=format:%s%n%b"))
-
-(defun git--get-top-dir (&optional dir)
-  "Get the top-level git directory above DIR. If nil, use default-directory."
-  (git-in-lowest-existing-dir dir
-   (let ((cdup (git--rev-parse "--show-cdup")))
-     (git--concat-path default-directory (car (split-string cdup "\n"))))))
 
 (defun git--get-relative-to-top(filename)
   (file-relative-name filename
@@ -737,15 +781,15 @@ gives, essentially, file status."
 
 (defun git--get-top-dir-or-prompt (prompt &optional dir)
   "Returns the top-level git directory above DIR (or default-directory). Prompts
-the user with PROMPT if not a git repository."
-  (or (ignore-errors (git--get-top-dir dir))
-      (git--get-top-dir (read-directory-name prompt dir))))
+the user with PROMPT if not a git repository, or if DIR is t."
+  (or (unless (eq dir t) (ignore-errors (git--get-top-dir dir)))
+      (git--get-top-dir (read-directory-name prompt (unless (eq dir t) dir)))))
 
 (defun git--ls-unmerged (&rest files)
   "Get the list of unmerged files. Returns an association list of
 \(stage . git--fileinfo), where stage is one of 1, 2, 3. If FILES is specified,
 only checks the specified files. The list is sorted by filename."
-  
+
   (let (fileinfo)
     (with-temp-buffer
       (apply #'git--exec-buffer "ls-files" "-t" "-u" "-z" files)
@@ -787,25 +831,28 @@ only checks the specified files. The list is sorted by filename."
                                     git--reg-file))) ; matched-2
 
         (while (re-search-forward regexp nil t)
-          (let ((stat (match-string 1))
-                (file (match-string 2)))
-
-            (push (git--create-fileinfo file 'blob nil nil nil
+          (let* ((stat (match-string 1))
+                 (name (match-string 2))
+                 (file-name (directory-file-name name)))
+            ;; Files listed with e.g "-o" might be directories
+            (push (git--create-fileinfo file-name
+                                        (if (equal name file-name) 'blob
+                                          'tree)
+                                        nil nil nil
                                         (git--interpret-to-state-symbol stat))
                   fileinfo)))))
     (sort fileinfo 'git--fileinfo-lessp)))
 
 (defsubst git--to-type-sym (type)
-  "Change string symbol type to 'blob, 'tree or 'commit (i.e. submodule)"
-  
+  "Convert a string type from git to 'blob, 'tree or 'commit (i.e. submodule)"
   (cond ((string= type "blob") 'blob)
         ((string= type "tree") 'tree)
         ((string= type "commit") 'commit)
         (t (error "strange type : %s" type))))
 
 (defun git--ls-tree (&rest args)
-  "Execute git-ls-tree with args and return the result as the list of 'git--fileinfo'"
-  
+  "Execute 'git ls-tree ARGS', return a list of git--fileinfo structs."
+
   (let (fileinfo)
     (with-temp-buffer
       (apply #'git--exec-buffer "ls-tree" "-z" args)
@@ -835,6 +882,7 @@ only checks the specified files. The list is sorted by filename."
     (sort fileinfo 'git--fileinfo-lessp)))
 
 (defun git--merge (&rest args)
+  "Run 'git merge ARGS', output the return message to the user."
   (message "%s" (git--trim-string (apply #'git--exec-string "merge" args))))
 
 (defsubst git--branch (&rest args)
@@ -850,34 +898,18 @@ SIZE is 5, but it will be longer if needed (due to conflicts)."
 (defsubst git--today ()
   (time-stamp-string "%:y-%02m-%02d %02H:%02M:%02S"))
 
-(defsubst git--interpret-state-mode-color (stat)
-  "Interpret git state symbol to mode line color"
-
-  (case stat
-    ('modified "tomato"      )
-    ('unknown  "gray"        )
-    ('added    "blue"        )
-    ('deleted  "red"         )
-    ('unmerged "purple"      )
-    ('uptodate "GreenYellow" )
-    ('staged   "yellow"      )
-    (t "red")))
-
-
 
 ;;-----------------------------------------------------------------------------
 ;; git application
 ;;-----------------------------------------------------------------------------
 
 (defsubst git--managed-on-git? ()
-  "Check see if vc-git mode is on the vc-git"
-
+  "Returns true if we're in a git repository."
   (not (string-match "fatal: Not a git repository"
                      (git--rev-parse "HEAD"))))
 
 (defun git--status-file (file)
-  "Return the status of the file"
-  
+  "Return the git status of FILE, as a symbol."
   (let ((fileinfo (git--status-index file)))
     (unless fileinfo (setq fileinfo (git--ls-files file)))
     (when (= 1 (length fileinfo))
@@ -889,7 +921,7 @@ SIZE is 5, but it will be longer if needed (due to conflicts)."
 
   (let ((branches) (current-branch)
         (regexp (concat " *\\([*]\\)? *" git--reg-branch "\n")))
-    
+
     (with-temp-buffer
       (git-in-lowest-existing-dir
        nil
@@ -906,25 +938,21 @@ SIZE is 5, but it will be longer if needed (due to conflicts)."
     (cons (nreverse branches) current-branch)))
 
 (defun git--cat-file (buffer-name &rest args)
-  "Execute git-cat-file and return the buffer with the file content"
-  
+  "Execute 'git cat-file ARGS' and return a new buffer named BUFFER-NAME
+with the file content"
   (let ((buffer (get-buffer-create buffer-name)))
     (with-current-buffer buffer
-
-      ;; set buffer writable
       (setq buffer-read-only nil)
       (erase-buffer)
 
-      ;; set tricky auto mode for highlighting
+      ;; auto mode, for highlighting
       (let ((buffer-file-name buffer-name)) (set-auto-mode))
-
-      ;; ok cat file to buffer
       (apply #'git--exec-buffer "cat-file" args)
 
       ;; set buffer readonly & quit
       (setq buffer-read-only t)
 
-      ;; check see if failed
+      ;; Failed?
       (goto-char (point-min))
       (when (looking-at "^\\([Ff]atal\\|[Ff]ailed\\|[Ee]rror\\):")
         (let ((msg (buffer-string)))
@@ -933,17 +961,101 @@ SIZE is 5, but it will be longer if needed (due to conflicts)."
           (error "%s" (git--trim-tail msg)))))
     buffer))
 
-(defsubst git--select-branch (&rest excepts)
-  "Select the branch"
-
+(defun git--select-branch (&rest excepts)
+  "Prompts the user for a branch name. Offers all the branches for completion,
+except EXCEPTS. Returns the user's selection."
   (let ((branches (car (git--branch-list))))
     (git--select-from-user
-     "Select Branch : "
+     "Select branch: "
      (delq nil (mapcar (lambda (b) (unless (member b excepts) b))
                        branches)))))
-                         
+
+;; ================================================================================
+;; I will revise this code laster this week
+;; ================================================================================
+(defun git-pull-ff-only ()
+  "Interactive git pull. Prompts user for a remote branch, and pulls from it.
+  This command will fail if we can not do a ff-only pull from the remote branch."
+  (interactive)
+  (let ((remote (git--select-remote 
+                 (concat "Select remote for pull (local branch:" 
+                         (git--current-branch) 
+                         "): "))))
+    (message (git--pull-ff-only remote))))
+
+;; XXX. should this be implemented list this way? umm..
+(defsubst git--select-remote (prompt &rest excepts)
+  "Select remote branch interactively."
+  (let ((remotes (git--symbolic-commits '("remotes"))))
+    (git--select-from-user prompt
+                           (delq nil (mapcar (lambda (b) (unless (member b excepts) b))
+                                             remotes)))))
+
+(defun git--pull-ff-only (remote)
+  "Pull from remote into current branch, but only on a fast-forward pull."
+  (let ((split-remote (split-string remote "/"))
+        (parse-success-string (lambda (resultstring) ;; Parses success string
+                                (let ((lines (split-string resultstring "\n")))
+                                  (if (string-equal (nth 2 lines) "Already up-to-date.")
+                                      "Already up-to-date."
+                                    (let ((revision-change 
+                                           (split-string (cadr (split-string (nth 2 lines) )) 
+                                                         "\\.\\.")))
+                                      (concat "Pulled revisions from " 
+                                              (car revision-change) 
+                                              " to " 
+                                              (cadr revision-change) 
+                                              "." (nth (- (length lines) 2) lines))))))))
+    (let ((remote-name (car split-remote))
+          (remote-branch (car (cdr split-remote))))
+      (condition-case err
+          (progn
+            (funcall parse-success-string 
+                     (git--exec-string "pull" "--ff-only" remote-name (concat remote-branch))))
+        (error (error-message-string err))))))
+
+(defun git--split-porcelain (resultstring)
+  (mapcar (lambda (s) (split-string s "\t")) (split-string resultstring "\n")))
+
+(defun git--n-n-th (i j arr)
+  "Given a 2-d list, access the i,j 'th element"
+  (nth j (nth i arr)))
+
+(defun git--actual-push (remote-name remote-branch)
+  (let ((actual-run-output 
+         (git--split-porcelain 
+          (git--exec-string "push" "--porcelain" 
+                            remote-name 
+                            (concat (git--current-branch) ":" remote-branch)))))
+    (message (concat "Pushed changes " 
+                     (git--n-n-th 1 2 dry-run-output) 
+                     " to remote " 
+                     remote-name 
+                     "/" 
+                     remote-branch))))
+
+(defun git--push-ff-only (remote)
+  "Pushes from current branch into remote, fast-forward only."
+  (let ((split-remote (split-string remote "/")))
+    (let ((dry-run-output (git--split-porcelain 
+                           (git--exec-string "push" "--dry-run" "--porcelain" 
+                                             (car split-remote) 
+                                             (concat (git--current-branch) ":" (cadr split-remote))))))
+      (let ((newbranch (string-equal (git--n-n-th 1 2 dry-run-output) "[new branch]"))
+            (change-diff (git--n-n-th 1 2 dry-run-output))
+            (up-to-date (string-equal (git--n-n-th 1 0 dry-run-output) "Everything up-to-date")))
+        (cond (newbranch (if (y-or-n-p (concat "Pushing will create branch " 
+                                               (cadr split-remote) 
+                                               " in remote. Continue? "))
+                             (git--actual-push (car split-remote) (cadr split-remote))
+                           (message "Did not push.")))
+              (up-to-date (message "Remote branch is up to date."))
+              ((not newbranch) (git--actual-push (car split-remote) (cadr split-remote)))
+              (t (message "Did not push.")))))))
+;; --------------------------------------------------------------------------------
+
 (defun git--symbolic-commits (&optional reftypes)
-  "Find symbolic names referring to commits, using git-for-each-ref.
+  "Find symbolic names referring to commits, using 'git for-each-ref'.
 REFTYPES is a list of types of refs under .git/refs ; by default,
  (\"heads\" \"tags\" \"remotes\") , which gives branches, tags and remote
 branches. Returns a list of the refs found (as strings), in the order
@@ -984,7 +1096,7 @@ to those in the list, unless they were specified in PREPEND-CHOICES explicitly."
                                               revision))
                                         (git--symbolic-commits)))
                           git--revision-history)))
-                                        
+
 (defun git--maybe-ask-and-commit(after-func)
   "Helper for functions that switch trees. If there are pending
 changes, asks the user whether they want to commit, then pops up
@@ -994,22 +1106,21 @@ changes), AFTER-FUNC is called, which should do the tree
 switching along with any confirmations. The return value is either the
 pending commit buffer or nil if the buffer wasn't needed."
   ;; git status -a tells us if there's anything to commit
-  (if (and (eq 0 (git--exec "status" nil nil "-a"))
+  (if (and (eq 0 (git--commit-dryrun-compat nil "-a"))
            (y-or-n-p "Commit your pending changes first? (if not, they will be merged into the new tree) "))
       (with-current-buffer (git-commit-all)
         (add-hook 'git--commit-after-hook after-func t t) ; append, local
-        (current-buffer)) 
+        (current-buffer))
     (funcall after-func)
     nil))
-    
+
 
 ;;-----------------------------------------------------------------------------
 ;; vc-git integration
 ;;-----------------------------------------------------------------------------
 
 (defun git--update-modeline ()
-  "Update modeline state dot mark properly"
-  
+  "Update the current's buffer modeline state display."
   ;; mark depending on the fileinfo state
   (when (and buffer-file-name (git--in-vc-mode?))
     (git--update-state-mark
@@ -1018,7 +1129,7 @@ pending commit buffer or nil if the buffer wasn't needed."
 (defalias 'git-history 'git-log)
 
 (defadvice vc-after-save (after git--vc-git-after-save activate)
-  "vc-after-save advice for synchronizing when saving buffer"
+  "vc-after-save advice for updating status"
 
   (when (git--in-vc-mode?) (git--update-modeline)))
 
@@ -1046,11 +1157,11 @@ pending commit buffer or nil if the buffer wasn't needed."
       ad-do-it)))
 
 ;;-----------------------------------------------------------------------------
-;; public functions
+;; Low-level commit support.
 ;;-----------------------------------------------------------------------------
 
 (defun git--config-get-author ()
-  "Find appropriate user.name"
+  "Returns the user's name, either from git or from emacs's config."
 
   (let ((config-user-name (git--config "user.name")))
       (or (and (not (string= config-user-name "")) config-user-name)
@@ -1058,8 +1169,7 @@ pending commit buffer or nil if the buffer wasn't needed."
           (and (boundp  'user-full-name) user-full-name))))
 
 (defun git--config-get-email ()
-  "Find appropriate user.email"
-  
+  "Returns the user's email, either from git or from emacs's config."
   (let ((config-user-email (git--config "user.email")))
     (or (and (not (string= config-user-email "")) config-user-email)
         (and (fboundp 'user-mail-address) (user-mail-address))
@@ -1069,8 +1179,10 @@ pending commit buffer or nil if the buffer wasn't needed."
   "Insert the log header to the buffer. If AMEND, grab the info from the last
 commit, like git commit --amend will do once we commit."
 
+  ;; TODO: we should make git always use this info, even if its config
+  ;; has changed. Otherwise this is misleading.
   (insert git--log-header-line  "\n"
-          "# Branch : " (git--current-branch)     "\n")
+          "# Branch : " (or (git--current-branch) "<none>")     "\n")
   (if amend
       (insert (git--log "--max-count=1"
                         (concat "--pretty=format:"
@@ -1082,7 +1194,7 @@ commit, like git commit --amend will do once we commit."
      "# Author : " (git--config-get-author)  "\n"
      "# Email  : " (git--config-get-email)   "\n"
      "# Date   : " (git--today)              "\n")))
-  
+
 ;; Internal variables for commit
 (defvar git--commit-after-hook nil
   "Hooks to run after comitting (and killing) the commit buffer.")
@@ -1100,9 +1212,8 @@ commit, like git commit --amend will do once we commit."
 (make-variable-buffer-local 'git--commit-amend)
 
 (defun git--commit-buffer ()
-  "When you press C-cC-c after editing log, this function is called
-Trim the buffer log and commit"
-  
+  "Called when the user commits, in the commit buffer (C-cC-c).
+Trim the buffer log, commit runs any after-commit functions."
   (interactive)
 
   ;; check buffer
@@ -1126,21 +1237,24 @@ Trim the buffer log and commit"
   ;; update state marks, either for the files committed or the whole repo
   (git--update-all-state-marks
    (if (eq t git--commit-targets) nil git--commit-targets))
-   
+
   ;; close window and kill buffer. Some gymnastics are needed to preserve
   ;; the buffer-local value of the after-hook.
   (let ((local-git--commit-after-hook
          (when (local-variable-p 'git--commit-after-hook)
            (cdr git--commit-after-hook)))) ; skip the "t" for local
-    (unless (one-window-p t) (delete-window))
     (kill-buffer git--commit-log-buffer)
-  
+
     ;; hooks (e.g. switch branch)
     (run-hooks 'local-git--commit-after-hook 'git--commit-after-hook)))
 
+;;-----------------------------------------------------------------------------
+;; Merge support.
+;;-----------------------------------------------------------------------------
+
 (defun git--resolve-fill-buffer (template side)
-  "Make the new buffer based on the conflicted template on each
-side ('local or 'remote). TEMPLATE is the original buffer. Returns the buffer."
+  "Make a buffer showing a SIDE ('local or 'remote) of the conflict
+buffer TEMPLATE. Returns the buffer."
 
   (let* ((filename (file-relative-name (buffer-file-name template)))
          (buffer-name (format "*%s*: %s"
@@ -1228,7 +1342,6 @@ and the user accepts the result."
          (filename (file-relative-name buffer-file-name))
          (our-buffer (git--resolve-fill-buffer result-buffer 'local))
          (their-buffer (git--resolve-fill-buffer result-buffer 'remote))
-         ;; there seems to be a bug with ancestor handling in emacs-snapshot
          (base-buffer (git--resolve-fill-base))
          (config (current-window-configuration))
          (ediff-default-variant 'combined)
@@ -1238,7 +1351,7 @@ and the user accepts the result."
     (let ((default-major-mode nil))
       (mapc #'set-buffer-major-mode
             (delq nil (list our-buffer their-buffer base-buffer))))
-    
+
     ;; set merge buffer
     (set-buffer (if base-buffer
                     (ediff-merge-buffers-with-ancestor
@@ -1346,13 +1459,17 @@ the user quits or the merge is successfully committed."
           (message "")             ; fixes odd v23 interaction with ediff's msgs
           (git-merge-next-action)) ; start processing conflicts
 ))))
-       
+
 
 (defun git-resolve-merge ()
-  "Resolve merge for the current buffer"
-  
+  "Resolve git merge conflicts in the current buffer with ediff."
   (interactive)
   (git--resolve-merge-buffer))
+
+
+;;-----------------------------------------------------------------------------
+;; High-level commit functions.
+;;-----------------------------------------------------------------------------
 
 (defconst git--commit-status-font-lock-keywords
   '(("^#\t\\([^:]+\\): +[^ ]+$"
@@ -1419,7 +1536,7 @@ Returns the buffer."
   (interactive "P")
   ;; Don't save anything on commit-index
   (when targets (git--maybe-ask-save (if (eq t targets) nil targets)))
-  
+
   (let ((cur-pos nil)
         (buffer (get-buffer-create git--commit-log-buffer))
         (current-dir default-directory))
@@ -1433,7 +1550,7 @@ Returns the buffer."
                                     ((listp targets) (cons "--" targets))
                                     (t (error "Invalid targets: %S" targets))))
             git--commit-amend amend)
-                 
+
       (local-set-key "\C-c\C-c" 'git--commit-buffer)
       (local-set-key "\C-c\C-q" 'git--quit-buffer)
       (erase-buffer)
@@ -1463,10 +1580,10 @@ Returns the buffer."
       (setq cur-pos (point))
       (insert "\n\n")
 
-      ;;git status -- give same args as to commit
+      ;;git commit --dryrun or git status -- give same args as to commit
       (insert git--log-sep-line "\n")
       (git--please-wait "Reading git status"
-        (unless (eq 0 (apply #'git--exec-buffer "status" git--commit-args))
+        (unless (eq 0 (apply #'git--commit-dryrun-compat t git--commit-args))
           (kill-buffer nil)
           (error "Nothing to commit%s"
                  (if (eq t targets) "" ", try git-commit-all"))))
@@ -1486,9 +1603,10 @@ Returns the buffer."
       (add-hook 'kill-buffer-hook
                 #'(lambda()
                     (ignore-errors
-                      (kill-buffer git--commit-last-diff-file-buffer)))
+                      (when git--commit-last-diff-file-buffer
+                          (kill-buffer git--commit-last-diff-file-buffer))))
                 t t)                    ; append, local
-      
+
       ;; Set cursor to message area
       (goto-char cur-pos)
 
@@ -1499,7 +1617,7 @@ Returns the buffer."
 
       (message "%sType 'C-c C-c' to commit, 'C-c C-q' to cancel"
                (or prepend-status-msg "")))
-    (pop-to-buffer buffer)
+    (git--pop-to-buffer buffer)
     buffer))
 
 (defun git-commit-file (&optional amend)
@@ -1527,14 +1645,14 @@ a prefix argument, is specified, does a commit --amend."
 
 (defun git-init-from-archive (file)
   "Initialize the git repository based on the archive"
-  
+
   (interactive "fSelect archive: ")
 
   ;; TODO dirty enough
   ;; simple rule to uncompress -> dired-compress not working propery
   (with-temp-buffer
     (cd (file-name-directory file))
-    
+
     (when (file-exists-p file)
       (let ((ext (file-name-extension file)))
         (cond
@@ -1554,10 +1672,16 @@ a prefix argument, is specified, does a commit --amend."
       (git--add ".")
       (git-commit-all))))
 
+;;-----------------------------------------------------------------------------
+;; Miscellaneous high-level functions.
+;;-----------------------------------------------------------------------------
+
 (defun git-clone (dir)
-  "Clone from repository"
+  "Clone a repository (prompts for the URL) into the local directory DIR (
+prompts if unspecified)."
   
-  (interactive "DLocal Directory : ")
+  (interactive "DLocal destination directory: ")
+
   (let ((repository
          (git--select-from-user "Clone repository: "
                                 git--repository-bookmarks
@@ -1573,7 +1697,7 @@ specified). Prompts the user whether to reset --hard."
 
   (interactive
       ;; We might be operating with a detached HEAD.
-   (let ((current-branch (ignore-errors (git--current-branch))))
+   (let ((current-branch (git--current-branch)))
      (list (git--select-revision
             (format "Reset %s to: "
                     (if current-branch
@@ -1603,7 +1727,7 @@ revert operation, instead popping up a commit buffer."
         (actual-revert #'(lambda()
                            (git--trim-string
                             (git--exec-string "revert" "-n" commit)))))
-    (let ((output 
+    (let ((output
            (if (file-exists-p merge-msg-file)
                (with-temp-buffer
                  (buffer-disable-undo)
@@ -1621,18 +1745,17 @@ revert operation, instead popping up a commit buffer."
     (unwind-protect
         (git-after-working-dir-change)
       (git-commit nil nil output)))))
-  
+
 (defcustom gitk-program "gitk"
   "The command used to launch gitk."
   :type '(string)
   :group 'git-emacs)
 
 (defun gitk ()
-  "Launch gitk in emacs"
-
+  "Launch gitk in the current directory."
   (interactive)
   (start-process "gitk" nil gitk-program))
-    
+
 (defun git-checkout (&optional commit confirm-prompt after-checkout-func
                      &rest after-checkout-func-args)
   "Checkout a commit, fully. When COMMIT is nil, shows tags and branches
@@ -1679,7 +1802,7 @@ once the checkout is complete."
      (lambda()
        (let* ((branch (or branch (read-from-minibuffer "Create new branch: ")))
               (suggested-start (or suggested-start
-                                   (ignore-errors (git--current-branch))))
+                                   (git--current-branch)))
               ;; put current branch as the first option to be based on.
               (commit (git--select-revision
                        (format "Create %s based on: "
@@ -1693,10 +1816,8 @@ once the checkout is complete."
          (git-after-working-dir-change repo-dir))))))
 
 (defun git-delete-branch (&optional branch)
-  "Delete branch after selecting branch"
-
+  "Delete BRANCH, prompt the user if unspecified."
   (interactive)
-  ;; select branch if not assigned
   (unless branch (setq branch (git--select-branch "master")))
 
   (let ((saved-head (git--abbrev-commit branch 10))) ; safer abbrev
@@ -1705,8 +1826,7 @@ once the checkout is complete."
              (git--bold-face branch) saved-head)))
 
 (defun git-delete-tag (tag)
-  "Delete tag after selecting tag"
-  
+  "Delete TAG, prompt the user if unspecified."
   (interactive
    (list (git--select-from-user "Delete tag: " (git--tag-list))))
   (let ((saved-tag-target
@@ -1732,99 +1852,6 @@ the result as a message."
   (sit-for 2)
   (git-after-working-dir-change))
 
-(defun git--diff (file rev &optional before-ediff-hook after-ediff-hook)
-  "Starts an ediff session between the FILE and its specified revision.
-REVISION should include the filename. The latter should not
-include the filename, e.g. \"HEAD:\". If BEFORE-EDIFF-HOOK is specified,
-it is executed as an ediff setup hook. If AFTER-EDIFF-HOOK is specified,
-it is executed as an ediff quit hook. Both hooks run in the ediff context,
-i.e. with valid ediff-buffer-A and B variables, among others.
-"
-  (let* ((buf1 (find-file-noselect file))
-	 (buf2 nil)
-	 (config (current-window-configuration)))
-  
-    ;; build buf2
-    (with-temp-buffer 
-      (let ((abspath (expand-file-name file))
-	    (filename nil))
-
-	;; get relative to git root dir
-	(cd (git--get-top-dir (file-name-directory abspath)))
-	(let ((filerev (concat rev (file-relative-name abspath))))
-              (setq buf2 (git--cat-file (if (equal rev ":")
-                                            (concat "<index>" filerev)
-                                          filerev)
-                                        "blob" filerev)))))
-
-    (set-buffer
-     (ediff-buffers buf1 buf2
-                    (when before-ediff-hook (list before-ediff-hook))))
-    
-    (add-hook 'ediff-quit-hook
-              (lexical-let ((saved-config config)
-                            (saved-after-ediff-hook after-ediff-hook))
-                #'(lambda ()
-                    (let ((buffer-B ediff-buffer-B))
-                      (unwind-protect ; an error here is a real mess
-                          (when saved-after-ediff-hook
-                            (funcall saved-after-ediff-hook))
-                        (ediff-cleanup-mess)
-                        (kill-buffer buffer-B)
-                        (set-window-configuration saved-config)))))
-              nil t)                     ; prepend, buffer-local
-    ))
-
-(defun git--diff-many (files &optional rev1 rev2 dont-ask-save reuse-buffer)
-  "Shows a diff window for the specified files and revisions, since we can't
-do ediff on multiple files. FILES is a list of files, if empty the whole
-git repository is diffed. REV1 and REV2 are strings, interpreted roughly the
-same as in git diff REV1..REV2. If REV1 is unspecified, we use the index.
-If REV2 is unspecified, we use the working dir. If REV2 is t, we use the index.
-If DONT-ASK-SAVE is true, does not ask to save modified buffers under the
-tree (e.g. old revisions). If REUSE-BUFFER is non-nil and alive, uses that
-buffer instead of a new one."
-  (unless dont-ask-save (git--maybe-ask-save files))
-  (when (and (not rev1) (eq t rev2) (error "Invalid diff index->index")))
-  (let* ((rel-filenames (mapcar #'file-relative-name files))
-         (friendly-rev1 (or rev1 "<index>"))
-         (friendly-rev2 (if (eq t rev2) "<index>" (or rev2 "<working>")))
-         (diff-buffer-name (format "*git diff: %s %s..%s*"
-                                   (case (length files)
-                                     (0 (abbreviate-file-name
-                                         (git--get-top-dir)))
-                                     (1 (file-relative-name (first files)))
-                                     (t (format "%d files" (length files))))
-                                   friendly-rev1 friendly-rev2))
-         (buffer (if (buffer-live-p reuse-buffer)
-                     (with-current-buffer reuse-buffer
-                       (rename-buffer diff-buffer-name t)
-                       reuse-buffer)
-                   (get-buffer-create diff-buffer-name))))
-    (with-current-buffer buffer
-      (buffer-disable-undo)
-      (let ((buffer-read-only nil)) (erase-buffer))
-      (setq buffer-read-only t)
-      (diff-mode)
-      ;; See diff-mode.el, search for "neat trick", for why this is necessary
-      (let ((diff-readonly-map (assq 'buffer-read-only
-                                     minor-mode-overriding-map-alist)))
-        (when diff-readonly-map
-          (setcdr diff-readonly-map (copy-keymap (cdr diff-readonly-map)))
-          (define-key (cdr diff-readonly-map) "q" 'git--quit-buffer)))
-      (let ((diff-qualifier
-             (if rev1
-                 (if (eq t rev2) (list "--cached" rev1)
-                   (if rev2 (list (format "%s..%s" rev1 rev2))
-                     (list rev1)))
-               ;; rev1 is index. swap sides of git diff when diffing
-               ;; against the index, for consistency (rev1 -> rev2)
-               (if rev2 (list "--cached" "-R" rev2)
-                 '()))))
-        (apply #'vc-do-command buffer 'async "git" nil "diff"
-               (append diff-qualifier (list "--") rel-filenames)))
-      (vc-exec-after `(goto-char (point-min))))
-    (pop-to-buffer buffer)))
 
 
 (defun git-config-init ()
@@ -1849,14 +1876,13 @@ buffer instead of a new one."
 
     (message "Set user.name(%s) and user.email(%s)" name email)))
 
-(defun git-ignore (ignored-opt)
-  "Add ignore file"
-  
-  (interactive "sIgnore Option : ")
-
+(defun git-ignore (file-or-glob)
+  "Add FILE-OR-GLOB to .gitignore. Prompts the user if interactive."
+  (interactive "sIgnore file or glob: ")
   (with-temp-buffer
-    (insert ignored-opt "\n")
-    (append-to-file (point-min) (point-max) ".gitignore")))
+    (insert file-or-glob "\n")
+    (append-to-file (point-min) (point-max)
+                    (expand-file-name ".gitignore" (git--get-top-dir)))))
   
 (defun git-switch-branch (&optional branch)
   "Git switch branch, selecting from a list of branches."
@@ -1915,6 +1941,110 @@ for new files to add to git."
                 (with-current-buffer added-file-buffer (vc-find-file-hook))))))
       ))))
 
+;;-----------------------------------------------------------------------------
+;; Low-level diff functions
+;;-----------------------------------------------------------------------------
+
+(defun git--diff (file rev &optional before-ediff-hook after-ediff-hook)
+  "Starts an ediff session between the FILE and its specified revision.
+REVISION should not include the filename, e.g. \"HEAD:\". If
+BEFORE-EDIFF-HOOK is specified, it is executed as an ediff setup
+hook. If AFTER-EDIFF-HOOK is specified, it is executed as an
+ediff quit hook. Both hooks run in the ediff context, i.e. with
+valid ediff-buffer-A and B variables, among others. If the
+versions are identical, error out without executing either type
+of hook."
+  (let* ((buf1 (find-file-noselect file))
+	 (buf2 nil)
+	 (config (current-window-configuration)))
+
+    ;; build buf2
+    (with-temp-buffer
+      (let ((abspath (expand-file-name file))
+	    (filename nil))
+
+	;; get relative to git root dir
+	(cd (git--get-top-dir (file-name-directory abspath)))
+	(let ((filerev (concat rev (file-relative-name abspath))))
+              (setq buf2 (git--cat-file (if (equal rev ":")
+                                            (concat "<index>" filerev)
+                                          filerev)
+                                        "blob" filerev)))))
+    (when (eq 0 (compare-buffer-substrings buf1 nil nil buf2 nil nil))
+      (kill-buffer buf2)
+      (error "No differences vs. %s"
+             (or (car-safe (split-string rev ":" t)) "index")))
+
+    (set-buffer
+     (ediff-buffers buf1 buf2
+                    (append
+                     (when before-ediff-hook (list before-ediff-hook)))))
+
+    (add-hook 'ediff-quit-hook
+              (lexical-let ((saved-config config)
+                            (saved-after-ediff-hook after-ediff-hook))
+                #'(lambda ()
+                    (let ((buffer-B ediff-buffer-B))
+                      (unwind-protect ; an error here is a real mess
+                          (when saved-after-ediff-hook
+                            (funcall saved-after-ediff-hook))
+                        (ediff-cleanup-mess)
+                        (kill-buffer buffer-B)
+                        (set-window-configuration saved-config)))))
+              nil t)                     ; prepend, buffer-local
+    ))
+
+
+(defun git--diff-many (files &optional rev1 rev2 dont-ask-save reuse-buffer)
+  "Shows a diff window for the specified files and revisions, since we can't
+do ediff on multiple files. FILES is a list of files, if empty the whole
+git repository is diffed. REV1 and REV2 are strings, interpreted roughly the
+same as in git diff REV1..REV2. If REV1 is unspecified, we use the index.
+If REV2 is unspecified, we use the working dir. If REV2 is t, we use the index.
+If DONT-ASK-SAVE is true, does not ask to save modified buffers under the
+tree (e.g. old revisions). If REUSE-BUFFER is non-nil and alive, uses that
+buffer instead of a new one."
+  (unless dont-ask-save (git--maybe-ask-save files))
+  (when (and (not rev1) (eq t rev2) (error "Invalid diff index->index")))
+  (let* ((rel-filenames (mapcar #'file-relative-name files))
+         (friendly-rev1 (or rev1 "<index>"))
+         (friendly-rev2 (if (eq t rev2) "<index>" (or rev2 "<working>")))
+         (diff-buffer-name (format "*git diff: %s %s..%s*"
+                                   (case (length files)
+                                     (0 (abbreviate-file-name
+                                         (git--get-top-dir)))
+                                     (1 (file-relative-name (first files)))
+                                     (t (format "%d files" (length files))))
+                                   friendly-rev1 friendly-rev2))
+         (buffer (if (buffer-live-p reuse-buffer)
+                     (with-current-buffer reuse-buffer
+                       (rename-buffer diff-buffer-name t)
+                       reuse-buffer)
+                   (get-buffer-create diff-buffer-name))))
+    (with-current-buffer buffer
+      (buffer-disable-undo)
+      (let ((buffer-read-only nil)) (erase-buffer))
+      (setq buffer-read-only t)
+      (diff-mode)
+      ;; See diff-mode.el, search for "neat trick", for why this is necessary
+      (let ((diff-readonly-map (assq 'buffer-read-only
+                                     minor-mode-overriding-map-alist)))
+        (when diff-readonly-map
+          (setcdr diff-readonly-map (copy-keymap (cdr diff-readonly-map)))
+          (define-key (cdr diff-readonly-map) "q" 'git--quit-buffer)))
+      (let ((diff-qualifier
+             (if rev1
+                 (if (eq t rev2) (list "--cached" rev1)
+                   (if rev2 (list (format "%s..%s" rev1 rev2))
+                     (list rev1)))
+               ;; rev1 is index. swap sides of git diff when diffing
+               ;; against the index, for consistency (rev1 -> rev2)
+               (if rev2 (list "--cached" "-R" rev2)
+                 '()))))
+        (apply #'vc-do-command buffer 'async "git" nil "diff"
+               (append diff-qualifier (list "--") rel-filenames)))
+      (vc-exec-after `(goto-char (point-min))))
+    (git--pop-to-buffer buffer)))
 
 ;;-----------------------------------------------------------------------------
 ;; branch mode
@@ -1954,7 +2084,7 @@ been displayed.")
 
 
 (defun git--branch-mode ()
-  "Set current buffer as branch-mode"
+  "Initialize branch mode buffer."
 
   (kill-all-local-variables)
   (buffer-disable-undo)
@@ -1981,10 +2111,10 @@ been displayed.")
 (defun git--branch-mode-annotate-changes-pending (branch-list)
   "Branch annotator function: display \"changes pending\" next
 to the current branch, if applicable. Enabled by default."
-  (let ((current-branch (ignore-errors (git--current-branch))))
+  (let ((current-branch (git--current-branch)))
     (when (and (member current-branch branch-list)
-               ;; "git-status -a" returns ok if there are pending changes.
-               (eq 0 (git--exec "status" nil nil "-a")))
+               ;; "git commit --dryrun -a" returns ok if pending changes.
+               (eq 0 (git--commit-dryrun-compat nil "-a")))
       (list (cons current-branch (git--bold-face "changes pending"))))))
 
 
@@ -2009,7 +2139,11 @@ buffer")
 If POSITION-ON-CURRENT is true, put the cursor on the current branch; otherwise
 preserve the cursor position."
   (interactive)
-  
+
+  ;; Set the working dir to the top-level dir. Otherwise it might have gone
+  ;; away from under us.
+  (setq default-directory (git--get-top-dir))
+
   ;; find annotations
   (let* ((branch-list-and-current (git--branch-list))
          (branch-list (car branch-list-and-current))
@@ -2068,7 +2202,7 @@ preserve the cursor position."
 
 
 (defun git-branch ()
-  "Launch git-branch mode and return the resulting buffer."
+  "Pop up a git branch mode buffer and return it."
 
   (interactive)
 
@@ -2078,12 +2212,12 @@ preserve the cursor position."
         (directory default-directory))
     (with-current-buffer buffer
       (setq default-directory directory)
-      ;; set branch mode 
+      ;; set branch mode
       (git--branch-mode)
       (git--branch-mode-refresh t)
       )
     ;; pop up
-    (pop-to-buffer buffer)
+    (git--pop-to-buffer buffer)
     (fit-window-to-buffer)
     (run-hooks 'git--branch-mode-hook)
     buffer))
@@ -2106,16 +2240,16 @@ anymore; if unspecified, we operate on the current buffer."
   (let ((buffer (or buffer (current-buffer))))
     (when (buffer-live-p buffer)
       (if (or (eq t git-branch-buffer-closes-after-action)
-              (and was-branch-switch git-branch-buffer-closes-after-action))
-          (progn
-            (delete-windows-on buffer)
-            (kill-buffer buffer))
+              (and was-branch-switch
+                   (eq 'on-branch-switch
+                       git-branch-buffer-closes-after-action)))
+          (kill-buffer buffer)
         ;; Just refresh. If this was a branch switch is seems OK to move
         ;; the cursor to the new branch.
         (with-current-buffer buffer
           (git--branch-mode-refresh was-branch-switch))))))
-          
-                                      
+
+
 ;; Branch mode actions
 (defun git-branch-mode-selected (&optional noerror)
   "Returns the branch on the current line in a `git-branch'
@@ -2173,7 +2307,7 @@ and it's not a git-status-buffer."
 
 ;; The git-diff-* family of functions diffs a buffer or the selected file
 ;; in git status against HEAD, the index, etc..
-                 
+
 (defun git-diff-head()
   "Diff current buffer, or current file in git-status,  against HEAD version,
 using ediff."
@@ -2247,7 +2381,7 @@ that variable in .emacs.
                      (if (not always-prompt-user)
                          (throw 'found-one candidate)
                        (add-to-list 'candidate-strings candidate t))))
-                  ((symbolp candidate)
+                  ((functionp candidate)
                    (let ((result (ignore-errors (funcall candidate))))
                      (when result
                        (if (not always-prompt-user)
@@ -2324,7 +2458,7 @@ that variable in .emacs.
 ;; Add interactively
 ;;-----------------------------------------------------------------------------
 (defun git-add-interactively()
-  "A friendly replacement git add -i, using ediff"
+  "A friendly replacement for git add -i, using ediff"
   (interactive)                         ; haha
   (git--require-buffer-in-git)
   (git--diff
@@ -2388,9 +2522,9 @@ that variable in .emacs.
       (remove-hook 'grep-setup-hook git-grep-setup-hook))))
 
 
-;; -----------------------------------------------------------------------------
-;; stash support
-;; -----------------------------------------------------------------------------
+;;-----------------------------------------------------------------------------
+;; Minimalistic stash support.
+;;-----------------------------------------------------------------------------
 (defconst git--stash-list-font-lock-keywords
   '(("^\\(stash@{\\([^}]*\\)}\\):"
      (1 font-lock-function-name-face prepend)
@@ -2414,7 +2548,7 @@ that variable in .emacs.
       (set (make-local-variable 'font-lock-defaults)
            (list 'git--stash-list-font-lock-keywords t))
       (when global-font-lock-mode (font-lock-mode t)))
-    (pop-to-buffer buffer)))
+    (git--pop-to-buffer buffer)))
 
 
 (defvar git--stash-history nil "History for git-stash")
@@ -2434,8 +2568,7 @@ usual pre / post work: ask for save, ask for refresh."
            (git--prepare-stash-list-buffer buffer)
            (let ((inhibit-read-only t))
              (erase-buffer)
-             (insert "Branch: " (or (ignore-errors (git--current-branch))
-                                    "<none>"))
+             (insert "Branch: " (or (git--current-branch) "<none>"))
              (setq changes-pending-point (point))
              (insert "\n\n")
              (if (not stashes-exist) (insert "(no stashes)")
@@ -2446,7 +2579,7 @@ usual pre / post work: ask for save, ask for refresh."
            (fit-window-to-buffer)
            (message "Checking tree status...")
            (redisplay t)                ; this might take a little bit
-           (let ((changes-pending (eq 0 (git--exec "status" nil nil "-a"))))
+           (let ((changes-pending (eq 0 (git--commit-dryrun-compat nil "-a"))))
              (let ((inhibit-read-only t))
                (save-excursion
                  (goto-char changes-pending-point)
@@ -2459,11 +2592,11 @@ usual pre / post work: ask for save, ask for refresh."
                      (changes-pending "save") (stashes-exist "pop") (t ""))))
                (setq cmd (read-string "git stash >> "
                                       suggested-cmd 'git--stash-history)))))
-         (delete-windows-on buffer)
          (kill-buffer buffer))))
   (message "%s" (git--trim-string (git--exec-string "stash" cmd)))
   (redisplay t)
   (sleep-for 1.5)                       ; let the user digest message
   (git-after-working-dir-change))
+
 
 (provide 'git-emacs)

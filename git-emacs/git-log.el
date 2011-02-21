@@ -1,3 +1,5 @@
+;; Git log mode support, part of git-emacs
+;;
 ;; See git-emacs.el for license information
 
 (require 'log-view)
@@ -124,6 +126,9 @@ default-directory is inside the repo."
          (buffer (get-buffer-create log-buffer-name))
          (saved-default-directory default-directory))
     (with-current-buffer buffer
+      ;; Subtle: a previous git process might still be running
+      (let ((proc (get-buffer-process (current-buffer))))
+        (when proc (delete-process proc)))
       (buffer-disable-undo)
       (let ((buffer-read-only nil)) (erase-buffer))
       (git-log-view-mode)
@@ -283,6 +288,6 @@ the working dir."
   "Create a new tag for commit that the cursor is on."
 
   (interactive)
-  (git--tag tag-name (git--abbrev-commit (log-view-current-tag))))
+  (git-tag tag-name (git--abbrev-commit (log-view-current-tag))))
 
 (provide 'git-log)

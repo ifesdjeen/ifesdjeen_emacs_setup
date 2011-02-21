@@ -1,6 +1,7 @@
 ;; See git-emacs.el for license and versioning.
 
 (require 'git-emacs)
+(require 'git-status)
 (require 'dired)
 
 (defun git--test-with-temp-repo (function)
@@ -42,7 +43,6 @@
   (assert (eq 'uptodate (git--status-file "f1")))
 
   ;; create status buffer
-  (require 'git-status)
   (assert (string= (buffer-name (git--create-status-buffer "."))
                    (git--status-buffer-name ".")))
 
@@ -91,7 +91,7 @@
           (git--commit-buffer)
           (assert (not (buffer-live-p (get-buffer git--commit-log-buffer))))
           (assert (eq 'uptodate (git--status-file "f1")))
-          (assert (string-match "^[0-9a-f]* *another test commit"
+          (assert (string-match "^[0-9a-f.]* *another test commit"
                                 (git--last-log-short)))
           ;; Should be one above last commit
           (setq second-commit-id (git--rev-parse "HEAD"))
@@ -102,8 +102,12 @@
           (insert "Now amended")
           (git--commit-buffer)
           (assert (eq 'uptodate (git--status-file "f1")))
-          (assert (equal "another test commit\nNow amended\n"
-                         (git--last-log-message)))
+          ;; Unfortunately, git 1.6 has taken to mangling messages according
+          ;; to the subject/body distinctions. This stinks and we'll need to
+          ;; fix it; but there is simply no good way to do this now.
+          (assert (equal "another test commit Now amended "
+                         (replace-regexp-in-string "\n" " "
+                                                   (git--last-log-message))))
           (assert (not (equal second-commit-id (git--rev-parse "HEAD"))))
           ;; Should still be one commit above the first
           (assert (equal first-commit-id (git--rev-parse "HEAD^1"))))
@@ -275,7 +279,7 @@
 
 (defun git-regression ()
   (interactive)
-
+  ;; (setq debug-on-error t)  ;; uncomment to debug test run from make
   (message "Running unittest suite...")
   (git--test-standalone-functions)
   (save-window-excursion                ; some bufs might pop up, e.g. commit
