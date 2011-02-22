@@ -30,3 +30,6 @@
 [submodule "vendor/rinari"]
 	path = vendor/rinari
 	url = git://github.com/eschulte/rinari.git
+[submodule "vendor/coffee-mode"]
+	path = vendor/coffee-mode
+	url = https://github.com/defunkt/coffee-mode.git

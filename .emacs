@@ -14,6 +14,7 @@
 (add-to-list 'load-path "~/.emacs.d/vendor/git-emacs") 
 (add-to-list 'load-path "~/.emacs.d/vendor/yaml-mode") 
 (add-to-list 'load-path "~/.emacs.d/vendor/rinari")
+(add-to-list 'load-path "~/.emacs.d/vendor/coffee-mode")
 
 ;(add-to-list 'load-path "~/.emacs.d/muse-el/")
 (setenv "PATH" (concat "/opt/l ocal/bin:/usr/local/bin:/usr/local/git/bin" (getenv "PATH")))
@@ -213,3 +214,8 @@
 
 (setq custom-file "~/.emacs.d/custom.el")
 (load custom-file)
+
+(require 'coffee-mode)
+
+(add-to-list 'auto-mode-alist '("\\.coffee$" . coffee-mode))
+(add-to-list 'auto-mode-alist '("Cakefile" . coffee-mode))
