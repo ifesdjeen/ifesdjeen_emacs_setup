@@ -1,0 +1,4 @@
+#name : partial
+#group : control structure
+# --
+= render :partial => "${1:view}", :locals => { ${2:options} }

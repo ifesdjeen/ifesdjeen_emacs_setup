@@ -1,0 +1,4 @@
+#name : s
+#group : should eql
+# --
+should ${1:operator} ${2:equal_what}

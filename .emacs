@@ -5,7 +5,7 @@
 (add-to-list 'load-path "~/.emacs.d/vendor")
 (add-to-list 'load-path "~/.emacs.d/vendor/color-theme/")
 (add-to-list 'load-path "~/.emacs.d/yasnippet-0.6.1c")
-(add-to-list 'load-path "~/.emacs.d/venror/rspec-mode")
+(add-to-list 'load-path "~/.emacs.d/vendor/rspec-mode")
 (add-to-list 'load-path "~/.emacs.d/vendor/auto-complete")
 (add-to-list 'load-path "~/.emacs.d/vendor/cucumber")
 (add-to-list 'load-path "~/.emacs.d/vendor/textmate.el")
@@ -176,9 +176,13 @@
           (lambda ()
             (yas/load-directory "~/.emacs.d/yasnippet-0.6.1c/snippets/ruby-mode/")
             ))
-          (add-hook 'haml-mode-hook
+(add-hook 'haml-mode-hook
           (lambda ()
             (yas/load-directory "~/.emacs.d/yasnippet-0.6.1c/snippets/haml-mode/")
+            ))
+(add-hook 'rspec-mode-hook
+          (lambda ()
+            (yas/load-directory "~/.emacs.d/yasnippet-0.6.1c/snippets/rspec-mode/")
             ))
 
 ;(add-hook 'ruby-mode-hook
@@ -210,12 +214,17 @@
 
 
 (require 'textmate)
-(textmate-mode)
-
 (setq custom-file "~/.emacs.d/custom.el")
 (load custom-file)
 
 (require 'coffee-mode)
+(require 'rspec-mode)
 
 (add-to-list 'auto-mode-alist '("\\.coffee$" . coffee-mode))
 (add-to-list 'auto-mode-alist '("Cakefile" . coffee-mode))
+(rspec-mode)
+(textmate-mode)
+
+(autoload #'espresso-mode "espresso" "Start espresso-mode" t)
+(add-to-list 'auto-mode-alist '("\\.js$" . espresso-mode))
+(add-to-list 'auto-mode-alist '("\\.json$" . espresso-mode))

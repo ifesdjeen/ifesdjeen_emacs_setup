@@ -64,6 +64,8 @@
 (global-set-key "\M-\C-^"   'describe-variable)
 (global-set-key "\C-^"      'describe-key-briefly)
 (global-set-key "\C-cw" 'where-is)
+(global-set-key "\C-cr" 'replace-string)
+(global-set-key "\C-ce" 'eval-buffer)
 (global-set-key "\C-c!"     'revert-buffer-unconditionally)
 ;(global-set-key "\C-/"      'undo)
 (global-set-key (kbd "M-]")
