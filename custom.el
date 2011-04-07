@@ -3,6 +3,10 @@
 (set-face-foreground 'tabbar-selected "pale green")
 
 (custom-set-faces
+  ;; custom-set-faces was added by Custom.
+  ;; If you edit it by hand, you could mess it up, so be careful.
+  ;; Your init file should contain only one such instance.
+  ;; If there is more than one, they won't work right.
  '(tabbar-button ((t (:background "black" :foreground "lightgreen"))))
  '(tabbar-default ((((class color grayscale) (background dark)) (:inherit variable-pitch :background "black" :height 0.8))))
  '(tabbar-highlight ((t (:foreground "lightgreen"))))
@@ -22,29 +26,34 @@
       )))
 
 (custom-set-variables
-   '(column-number-mode t)
-   '(cua-mode t nil (cua-base))
-   '(default-input-method "russian-computer")
-   '(display-time-mode t)
-   '(indent-tabs-mode nil)
-   '(show-paren-mode t)
-   '(standard-indent 2)
-   '(tab-width 2)
-   '(tabbar-background-color "black")
-   '(tabbar-mode t nil (tabbar))
-   '(tabbar-scroll-left-button (quote ((" <") " =")))
-   '(tabbar-scroll-right-button (quote ((" >") " =")))
-   '(tabbar-separator (quote ("  |  ")))
-   '(tabbar-use-images nil)
-   '(tool-bar-mode nil)
-   '(transient-mark-mode t))
+  ;; custom-set-variables was added by Custom.
+  ;; If you edit it by hand, you could mess it up, so be careful.
+  ;; Your init file should contain only one such instance.
+  ;; If there is more than one, they won't work right.
+ '(column-number-mode t)
+ '(cua-mode t nil (cua-base))
+ '(default-input-method "russian-computer")
+ '(display-time-mode t)
+ '(indent-tabs-mode nil)
+ '(require-final-newline nil)
+ '(show-paren-mode t)
+ '(standard-indent 2)
+ '(tab-width 2)
+ '(tabbar-background-color "black")
+ '(tabbar-mode t nil (tabbar))
+ '(tabbar-scroll-left-button (quote ((" <") " =")))
+ '(tabbar-scroll-right-button (quote ((" >") " =")))
+ '(tabbar-separator (quote ("  |  ")))
+ '(tabbar-use-images nil)
+ '(tool-bar-mode nil)
+ '(transient-mark-mode t))
 
 (setq inhibit-startup-message t)
 (fset 'yes-or-no-p 'y-or-n-p)
 (setq default-tab-width 2)
 (setq soft-tab-size 2)
 (setq tab-size 2)
-(set-face-background 'hl-line "#330") 
+(set-face-background 'hl-line "#330")
 
 (defun toggle-fullscreen ()
   (interactive)
@@ -84,3 +93,8 @@
                         (indent-rigidly (min (point) (mark))
                                         (max (point) (mark))
                                         (- 2))))))
+
+(setq-default indicate-empty-lines t)
+(add-hook 'before-save-hook 'delete-trailing-whitespace)
+;(require-final-newline nil)
+;(next-line-add-newlines nil)
