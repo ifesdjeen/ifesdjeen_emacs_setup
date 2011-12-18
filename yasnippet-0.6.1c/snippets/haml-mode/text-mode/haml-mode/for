@@ -1,6 +1,0 @@
-#name : for ...  ...; ... end
-#group : control structure
-# --
-foraaa ${1:element} in ${2:collection}
-  $0
-end

@@ -1,5 +1,0 @@
-#name: JSpec it
-# --
-it('$1', function() {
-  $2
-});

@@ -1,0 +1,4 @@
+# -*- require-final-newline: nil -*-
+# name: before_filter (Ruby on Rails)
+# --
+before_filter :${1:filter}

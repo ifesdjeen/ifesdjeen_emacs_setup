@@ -1,4 +1,0 @@
-#name : link
-#group : link_to 
-# --
-= link_to "${1:title}", ${2:path}

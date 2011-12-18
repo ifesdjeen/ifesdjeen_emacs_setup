@@ -1,9 +1,10 @@
-(set-default-font "Consolas-10")
+;(set-default-font "Monaco-12")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Extension files path
 (add-to-list 'load-path "~/.emacs.d/vendor")
-(add-to-list 'load-path "~/.emacs.d/vendor/color-theme/")
+(add-to-list 'load-path "~/.emacs.d/vendor/color-theme")
+(add-to-list 'load-path "~/.emacs.d/vendor/color-theme/themes/solarized")
 (add-to-list 'load-path "~/.emacs.d/yasnippet-0.6.1c")
 (add-to-list 'load-path "~/.emacs.d/vendor/rspec-mode")
 (add-to-list 'load-path "~/.emacs.d/vendor/auto-complete")
@@ -11,17 +12,20 @@
 (add-to-list 'load-path "~/.emacs.d/vendor/textmate.el")
 (add-to-list 'load-path "~/.emacs.d/vendor/haml-mode")
 (add-to-list 'load-path "~/.emacs.d/vendor/sass-mode")
-(add-to-list 'load-path "~/.emacs.d/vendor/git-emacs") 
-(add-to-list 'load-path "~/.emacs.d/vendor/yaml-mode") 
+(add-to-list 'load-path "~/.emacs.d/junk")
+(add-to-list 'load-path "~/.emacs.d/vendor/yaml-mode")
 (add-to-list 'load-path "~/.emacs.d/vendor/rinari")
 (add-to-list 'load-path "~/.emacs.d/vendor/coffee-mode")
+(add-to-list 'load-path "~/.emacs.d/vendor/rvm")
+(add-to-list 'load-path "~/.emacs.d/vendor/js2-mode")
 
 ;(add-to-list 'load-path "~/.emacs.d/muse-el/")
-(setenv "PATH" (concat "/opt/l ocal/bin:/usr/local/bin:/usr/local/git/bin" (getenv "PATH")))
-(push "/usr/local/git/bin" exec-path)
-
-(fmakunbound 'git-status) ; Possibly remove Debian's autoloaded version
+(add-to-list 'load-path "~/.emacs.d/vendor/git-emacs")
+(setenv "PATH" (concat "/opt/local/bin:/usr/local/bin:/usr/local/git/bin:/Users/alexp/.rvm/gems/ruby-1.9.2-p136@jumpkick/bin:/Users/alexp/.rvm/gems/ruby-1.9.2-p136@global/bin:/Users/alexp/.rvm/rubies/ruby-1.9.2-p136/bin:/Users/alexp/.rvm/bin:/Users/alexp/opt/mongodb/bin:/opt/ree/bin:/opt/local/bin:/Users/alexp/bin:/opt/local/libexec/git-core:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/home" (getenv "PATH")))
+(push "/usr/local/bin/git" exec-path)
+;;(fmakunbound 'git-status) ; Possibly remove Debian's autoloaded version
 (require 'git-emacs-autoloads)
+
 (require 'yaml-mode)
 
 ;; Rinari
@@ -56,17 +60,6 @@
 ;         (inf-ruby-keys)
 ;))
 
-;;; Set up navigation keys for moving up and down
-(require 'smooth-scrolling)
-(setq mouse-wheel-scroll-amount '(1 ((shift) . 1) ((control) . nil)))
-(setq mouse-wheel-progressive-speed nil)
-
-(global-set-key [up] (lambda () (interactive) (scroll-down 1)))
-(global-set-key [down] (lambda () (interactive) (scroll-up 1)))
-
-(global-set-key [left] (lambda () (interactive) (scroll-right tab-width t)))
-(global-set-key [right] (lambda () (interactive) (scroll-left tab-width t)))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; kill current buffer
 (defun prh:kill-current-buffer ()
@@ -77,27 +70,41 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tabbar initialization
-(require 'tabbar)
-(tabbar-mode)
+;(require 'tabbar)
+;(tabbar-mode)
+(setq custom-file "~/.emacs.d/custom.el")
+(load custom-file)
+
 ;; tabbar end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Color - scheme initialization
 (require 'color-theme)
+(require 'color-theme-solarized)
 (color-theme-initialize)
-(load-file "~/.emacs.d/vendor/color-theme/themes/color-theme-blackboard.el")
+
+(eval-after-load "color-theme"
+  '(progn
+     (color-theme-initialize)
+     ;; (color-theme-solarized-light)
+     (color-theme-solarized-dark)
+     ))
 
 
-(if window-system
-    (color-theme-blackboard))
+;(load-file "~/.emacs.d/vendor/color-theme/themes/color-theme-blackboard.el")
+;(load-file "~/.emacs.d/vendor/color-theme/themes/color-theme-twilight.el")
+
+
+;(if window-system
+;    (color-theme-twilight))
 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Line numbers toggling
 ;;(add-hook ‘find-file-hook (lambda () (linum-mode 1)))
-(require 'linum)
-(global-linum-mode 1)
+;;(require 'linum)
+;;(global-linum-mode 1)
 
 ;;(ffap-bindings)
 ;;(require 'ffap-)
@@ -115,7 +122,7 @@
                 ("\\.htm$"                           . html-mode)
                 ("\\.md$"                            . emacs-lisp-mode)     ; what the hell is an .md file?
                 ("\\.el$"                            . emacs-lisp-mode)
-                ("\\.js\\'"                          . javascript-mode)
+                ("\\.js\\'"                          . js2-mode)
                 ("\\.yml\\'"                         . yaml-mode)
                 ("\\.txt$"                           . text-mode)
                 ) auto-mode-alist ))
@@ -126,8 +133,8 @@
 (define-key isearch-mode-map "\C-h" 'isearch-quote-char)
 
 ;;(require 'hideshow)  ; builtin to emacs
-
-(autoload 'javascript-mode "javascript" nil t)
+(autoload 'js2-mode "js2" nil t)
+(add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
 
 ;; To customize the background color
 ;(set-face-background 'highlight-current-line-face "light yellow")
@@ -146,14 +153,6 @@
   (global-set-key "\C-ck" 'mode-compile-kill)
 
 
-
-(require 'yasnippet) ;;; not yasnippet-bundle
-(yas/initialize)
-;(yas/load-directory "~/.emacs.d/yasnippet-0.6.1c/snippets")
-;(yas/load-directory yas/root-directory)
-(global-set-key (kbd "C-x C-e") 'yas/expand)
-(setq yas/indent-line 'fixed)
-
 (autoload 'markdown-mode "markdown-mode.el"
    "Major mode for editing Markdown files" t)
 
@@ -166,32 +165,21 @@
   (interactive)
   (find-file "~/.emacs"))
 
-;; Set the tab width
-(setq default-tab-width 2)
-(setq tab-width 2)
-(setq c-basic-indent 2)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Yasnippet configuration
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(require 'yasnippet) ;;; not yasnippet-bundle
+(yas/initialize)
+(global-set-key (kbd "C-x C-e") 'yas/expand)
+(setq yas/indent-line 'fixed)
 
 ;; Yas loading configuration
-(add-hook 'ruby-mode-hook
-          (lambda ()
-            (yas/load-directory "~/.emacs.d/yasnippet-0.6.1c/snippets/ruby-mode/")
-            ))
-(add-hook 'haml-mode-hook
-          (lambda ()
-            (yas/load-directory "~/.emacs.d/yasnippet-0.6.1c/snippets/haml-mode/")
-            ))
-(add-hook 'rspec-mode-hook
-          (lambda ()
-            (yas/load-directory "~/.emacs.d/yasnippet-0.6.1c/snippets/rspec-mode/")
-            ))
+(add-hook 'clojure-mode-hook (lambda () (yas/load-directory "~/.emacs.d/yasnippet-0.6.1c/snippets/clojure-mode/")))
+(add-hook 'ruby-mode-hook (lambda () (yas/load-directory "~/.emacs.d/yasnippet-0.6.1c/snippets/ruby-mode/")))
+(add-hook 'haml-mode-hook (lambda () (yas/load-directory "~/.emacs.d/yasnippet-0.6.1c/snippets/haml-mode/")))
+(add-hook 'rspec-mode-hook (lambda () (yas/load-directory "~/.emacs.d/yasnippet-0.6.1c/snippets/rspec-mode/")))
 
-;(add-hook 'ruby-mode-hook
-;          (lambda ()
-;            (add-to-list 'ac-sources 'ac-source-rsense-method)
-;            (add-to-list 'ac-sources 'ac-source-rsense-constant)))
-
-
-(scroll-bar-mode 0)
 
 (global-set-key "\M-w" 'clipboard-kill-ring-save)
 (global-set-key "\C-w" 'clipboard-kill-region)
@@ -214,8 +202,6 @@
 
 
 (require 'textmate)
-(setq custom-file "~/.emacs.d/custom.el")
-(load custom-file)
 
 (require 'coffee-mode)
 (require 'rspec-mode)
@@ -228,3 +214,63 @@
 (autoload #'espresso-mode "espresso" "Start espresso-mode" t)
 (add-to-list 'auto-mode-alist '("\\.js$" . espresso-mode))
 (add-to-list 'auto-mode-alist '("\\.json$" . espresso-mode))
+
+;(require 'aquamacs-tabbar)
+
+
+(require 'rvm)
+(rvm-use-default) ;; use rvm’s default ruby for the current Emacs session
+
+(setq org-clock-persist 'history)
+(org-clock-persistence-insinuate)
+(require 'org-install)
+(add-to-list 'auto-mode-alist '("\\.org\\'" . org-mode))
+
+(global-set-key "\C-cl" 'org-store-link)
+(global-set-key "\C-cc" 'org-capture)
+(global-set-key "\C-ca" 'org-agenda)
+(global-set-key "\C-cb" 'org-iswitchb)
+
+;;; This was installed by package-install.el.
+;;; This provides support for the package system and
+;;; interfacing with ELPA, the package archive.
+;;; Move this code earlier if you want to reference
+;;; packages in your .emacs.
+(when
+    (load
+     (expand-file-name "~/.emacs.d/elpa/package.el"))
+  (package-initialize)
+  ;; (add-to-list 'package-archives '("marmalade" . "http://marmalade-repo.org/packages/"))
+  )
+
+
+(add-to-list 'completion-ignored-extensions ".rbc")
+
+;; Set the tab width
+(setq default-tab-width 2)
+(setq tab-width 2)
+(setq indent-tabs-mode nil)
+(setq c-basic-offset 2)
+(setq c-basic-indent 2)
+
+(put 'downcase-region 'disabled nil)
+
+(defun clean-blank-lines ()
+  "Delete single blank lines, replace multiple blank lines by a single one."
+  (interactive)
+  (save-excursion
+    ;; Search for consecutive blank lines
+    (goto-char (point-min))
+    (while (search-forward "\n" nil t)
+      (replace-match "\n")
+      ;; Remove all but one of the remaining newlines after point
+      (if (looking-at "\n+")
+          (replace-match "\n")))))
+
+
+(add-to-list 'load-path "~/.emacs.d/el-get/el-get")
+(require 'el-get nil t)
+
+;; Turn off the scroll bar
+(scroll-bar-mode 0)
+(ns-toggle-fullscreen)
