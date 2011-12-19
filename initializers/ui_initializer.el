@@ -13,5 +13,6 @@
  '(visual-line-mode nil t))
 
 (if window-system
-    (ns-toggle-fullscreen)
-    (scroll-bar-mode))
+    (ns-toggle-fullscreen))
+
+(set-cursor-color "yellow")

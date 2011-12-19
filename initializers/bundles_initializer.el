@@ -50,3 +50,12 @@
 (elbundle/load-elbundle "ack")
 (elbundle/load-elbundle "textmate")
 (elbundle/load-elbundle "tabbar")
+
+(elbundle/load-elbundle "c")
+(elbundle/load-elbundle "cpp")
+(elbundle/load-elbundle "erlang")
+(elbundle/load-elbundle "python")
+(elbundle/load-elbundle "shell-script")
+
+(elbundle/load-elbundle "auto-complete")
+

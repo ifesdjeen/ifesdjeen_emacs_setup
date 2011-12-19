@@ -1,9 +1,20 @@
+(load "mode-compile")
+
+(autoload 'mode-compile "mode-compile" "Command to compile current buffer file based on the major mode" t)
+(global-set-key "\C-cc" 'mode-compile)
+(autoload 'mode-compile-kill "mode-compile"
+  "Command to kill a compilation launched by `mode-compile'" t)
+(global-set-key "\C-ck" 'mode-compile-kill)
+
+(load "rvm")
+
+(require 'rvm)
+(rvm-use-default) 
+
 (load "rspec-mode")
-(load "bundles/rspec/keymap")
 
 ;; load bundle snippets
 (yas/load-directory (concat bundles-dir "rspec/snippets"))
 
-(add-to-list 'auto-mode-alist '("_spec\\.rb$" . rspec-mode))
-;; SEG is shared examples group
-(add-to-list 'auto-mode-alist '("_seg\\.rb$" . rspec-mode))
+(require 'rspec-mode)
+(rspec-mode)
