@@ -1,4 +1,4 @@
-;;; rspec-mode.el --- Enhance ruby-mode for RSpec
+;; rspec-mode.el --- Enhance ruby-mode for RSpec
 
 ;; Copyright (C) 2008 Peter Williams <http://pezra.barelyenough.org>
 ;; Authors: Peter Williams, et al.
@@ -468,6 +468,30 @@ as the value of the symbol, and the hook as the function definition."
         (toggle-read-only))
       (add-hook 'compilation-filter-hook 'rspec-colorize-compilation-buffer))
     (error nil))
+
+;;; spin
+
+(defvar spin-serve-executable "spin serve")
+(defvar spin-push-executable "spin push")
+
+(defun spin-run-current (&optional opts)
+  (interactive)
+  (rspec-from-project-root
+   (shell-command (concat spin-push-executable " " buffer-file-name))))
+
+(defun spin-run-all (&optional opts)
+  (interactive)
+  (rspec-from-project-root
+   (shell-command (concat spin-push-executable " spec"))))
+
+(defun spin-launch (&optional opts)
+  (interactive)
+  (rspec-from-project-root
+   (compile spin-serve-executable)))
+
+(define-key rspec-mode-keymap (kbd "C-c .v") 'spin-run-current)
+(define-key rspec-mode-keymap (kbd "C-c .a") 'spin-run-all)
+
 
 (provide 'rspec-mode)
 ;;; rspec-mode.el ends her
