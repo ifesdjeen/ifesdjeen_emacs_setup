@@ -16,3 +16,13 @@
     (ns-toggle-fullscreen))
 
 (set-cursor-color "yellow")
+
+;disable backup
+(setq backup-inhibited t)
+;disable auto save
+(setq auto-save-default nil)
+
+(add-hook 'before-save-hook 'delete-trailing-whitespace)
+
+(setq inhibit-startup-message t)
+(fset 'yes-or-no-p 'y-or-n-p)
