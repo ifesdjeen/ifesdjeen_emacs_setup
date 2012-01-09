@@ -79,3 +79,7 @@
 ;; Web
 (global-set-key (kbd "C-x C-w") 'browse-url-default-macosx-browser)
 (global-set-key (kbd "C-c C-o") 'google-region)
+
+(setq default-tab-width 2)
+(setq soft-tab-size 2)
+(setq tab-size 2)
