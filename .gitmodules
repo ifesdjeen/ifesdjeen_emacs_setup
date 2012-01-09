@@ -33,3 +33,6 @@
 [submodule "vendor/rvm"]
 	path = vendor/rvm
 	url = https://github.com/senny/rvm.el.git
+[submodule "bundles/ruby/rinari"]
+	path = bundles/ruby/rinari
+	url = https://github.com/eschulte/rinari.git
