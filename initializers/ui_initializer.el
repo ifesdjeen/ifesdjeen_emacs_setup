@@ -15,6 +15,7 @@
 (if window-system
     (ns-toggle-fullscreen))
 
+(scroll-bar-mode 0)
 (set-cursor-color "yellow")
 
 ;disable backup

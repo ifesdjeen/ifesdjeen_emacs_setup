@@ -31,7 +31,6 @@
 
 (elbundle/load-elbundle "ruby")
 
-(elbundle/load-elbundle "slime")
 (elbundle/load-elbundle "clojure")
 
 (elbundle/load-elbundle "git")

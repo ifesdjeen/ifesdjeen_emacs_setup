@@ -9,7 +9,7 @@
 (load "rvm")
 
 (require 'rvm)
-(rvm-use-default) 
+(rvm-use "jruby-1.6.7.2" "")
 
 (load "rspec-mode")
 
@@ -18,3 +18,9 @@
 
 (require 'rspec-mode)
 (rspec-mode)
+
+(defadvice rspec-compile (around rspec-compile-around)
+  "Use BASH shell for running the specs because of ZSH issues."
+  (let ((shell-file-name "/bin/bash"))
+    ad-do-it))
+(ad-activate 'rspec-compile)
