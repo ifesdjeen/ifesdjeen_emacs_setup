@@ -12,7 +12,7 @@
 (yas/load-directory (concat bundles-dir "clojure/snippets"))
 
 (highlight-parentheses-mode)
-;; (paredit-mode)
+(paredit-mode)
 
 (add-to-list 'auto-mode-alist '("\\.clj$" . clojure-mode))
 
@@ -26,6 +26,5 @@
 (add-hook 'lisp-mode-hook             (lambda () (paredit-mode +1)))
 (add-hook 'lisp-interaction-mode-hook (lambda () (paredit-mode +1)))
 
-(global-set-key (kbd "C-[") 'paredit-forward-slurp-sexp)
-
+;(global-set-key (kbd "C-[") 'paredit-forward-slurp-sexp)
 (global-set-key (kbd "C-c C-i") 'ruby-stdlib-help)
