@@ -32,6 +32,9 @@
 (elbundle/load-elbundle "ruby")
 
 (elbundle/load-elbundle "clojure")
+
+(elbundle/load-elbundle "git")
+
 (elbundle/load-elbundle "yaml")
 (elbundle/load-elbundle "haml")
 
@@ -54,4 +57,4 @@
 (elbundle/load-elbundle "shell-script")
 
 (elbundle/load-elbundle "auto-complete")
-(elbundle/load-elbundle "git")
+
