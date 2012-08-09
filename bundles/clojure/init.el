@@ -25,6 +25,7 @@
 (add-hook 'emacs-lisp-mode-hook       (lambda () (paredit-mode +1)))
 (add-hook 'lisp-mode-hook             (lambda () (paredit-mode +1)))
 (add-hook 'lisp-interaction-mode-hook (lambda () (paredit-mode +1)))
+(add-hook 'slime-repl-mode-hook       (lambda () (paredit-mode +1)))
 
 ;(global-set-key (kbd "C-[") 'paredit-forward-slurp-sexp)
 (global-set-key (kbd "C-c C-i") 'ruby-stdlib-help)
