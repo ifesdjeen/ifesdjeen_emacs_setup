@@ -49,6 +49,7 @@
 (define-key git-global-map "m" 'git-merge-next-action)
 
 (define-key git-global-map "R" 'git-reset)
+(define-key git-global-map "r" 'git-revert)
 
 (define-key git-global-map "s" 'git-status)
 (define-key git-global-map "." 'git-cmd)
