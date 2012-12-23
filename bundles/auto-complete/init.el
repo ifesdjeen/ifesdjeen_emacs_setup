@@ -5,3 +5,5 @@
 (ac-config-default)
 
 ;;(setq auto-mode-alist (append '(("\\.rb$" . ruby-mode)) auto-mode-alist))
+
+;; (ac-set-trigger-key "TAB")

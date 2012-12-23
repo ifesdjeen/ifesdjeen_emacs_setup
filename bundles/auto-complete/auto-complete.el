@@ -379,7 +379,7 @@ If there is no common part, this will be nil.")
 
 (defvar ac-completing-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "\t" 'ac-expand)
+    (define-key map (kbd "C-TAB") 'ac-expand)
     (define-key map "\r" 'ac-complete)
     (define-key map (kbd "M-TAB") 'auto-complete)
     (define-key map "\C-s" 'ac-isearch)
@@ -925,7 +925,7 @@ You can not use it in source definition like (prefix . `NAME')."
                 (setq point nil))
             (if point
                 (setq prefix-def prefix))))
-        
+
         if (equal prefix prefix-def) do (push source sources)
 
         finally return
@@ -1413,7 +1413,7 @@ that have been made before in this function."
       (ac-complete)
     (when (and (ac-inline-live-p)
                ac-common-part)
-      (ac-inline-hide) 
+      (ac-inline-hide)
       (ac-expand-string ac-common-part (eq last-command this-command))
       (setq ac-common-part nil)
       t)))
