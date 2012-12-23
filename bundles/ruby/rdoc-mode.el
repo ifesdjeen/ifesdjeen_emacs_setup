@@ -27,8 +27,7 @@
   (setq show-trailing-whitespace t)
   (rdoc-setup-keys)
   (setq indent-tabs-mode nil)
-  (run-hooks 'rdoc-mode-hook)
-  )
+  (run-hooks 'rdoc-mode-hook))
 
 (defun rdoc-fill-paragraph (&rest args)
   "Fills paragraph, except for cited region"

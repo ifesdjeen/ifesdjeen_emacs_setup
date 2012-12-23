@@ -25,13 +25,12 @@
 
 (elbundle/load-elbundle "smooth-scrolling")
 
-(elbundle/load-elbundle "textile")
 (elbundle/load-elbundle "markdown")
+(elbundle/load-elbundle "mustache")
 (elbundle/load-elbundle "linkify")
 
-(elbundle/load-elbundle "ruby")
-
 (elbundle/load-elbundle "clojure")
+(elbundle/load-elbundle "ruby") ;; depending on paredit, so turned on after clojure
 
 (elbundle/load-elbundle "git")
 
@@ -52,9 +51,13 @@
 
 (elbundle/load-elbundle "c")
 (elbundle/load-elbundle "cpp")
+(elbundle/load-elbundle "golang")
 (elbundle/load-elbundle "erlang")
+(elbundle/load-elbundle "elixir")
 (elbundle/load-elbundle "python")
 (elbundle/load-elbundle "shell-script")
 
 (elbundle/load-elbundle "auto-complete")
 
+(elbundle/load-elbundle "text")
+(elbundle/load-elbundle "ess")

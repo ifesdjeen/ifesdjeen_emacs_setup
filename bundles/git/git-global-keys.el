@@ -15,6 +15,7 @@
 (define-key git-global-map "a" 'git-add)
 (define-key git-global-map "b" 'git-branch)
 
+
 (define-prefix-command 'git--commit-map nil "Commit")
 (define-key git-global-map "c" 'git--commit-map)
 (define-key git--commit-map "f" '("[f]ile" . git-commit-file))
@@ -49,7 +50,6 @@
 (define-key git-global-map "m" 'git-merge-next-action)
 
 (define-key git-global-map "R" 'git-reset)
-(define-key git-global-map "r" 'git-revert)
 
 (define-key git-global-map "s" 'git-status)
 (define-key git-global-map "." 'git-cmd)

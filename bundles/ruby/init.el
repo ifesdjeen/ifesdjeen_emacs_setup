@@ -19,3 +19,12 @@
 (add-to-list 'auto-mode-alist '("Vagrantfile$" . ruby-mode))
 (add-to-list 'auto-mode-alist '("config.ru$" . ruby-mode))
 (add-to-list 'auto-mode-alist '("*ruby-scratch*" . ruby-mode))
+
+(defun esk-paredit-nonlisp ()
+	  "Turn on paredit mode for non-lisps."
+	  (set (make-local-variable 'paredit-space-for-delimiter-predicate)
+	       (lambda (endp delimiter)
+	         (equal (char-syntax (char-before)) ?\")))
+	  (paredit-mode 1))
+
+(add-hook 'ruby-mode-hook 'esk-paredit-nonlisp)

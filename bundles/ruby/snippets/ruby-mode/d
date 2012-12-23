@@ -1,0 +1,5 @@
+#name : do |smth| end
+# --
+do |$1|
+  $2
+end
