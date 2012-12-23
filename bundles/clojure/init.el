@@ -29,3 +29,5 @@
 
 ;(global-set-key (kbd "C-[") 'paredit-forward-slurp-sexp)
 (global-set-key (kbd "C-c C-i") 'ruby-stdlib-help)
+
+(require 'nrepl)
