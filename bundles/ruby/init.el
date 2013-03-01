@@ -2,8 +2,8 @@
 (require 'inf-ruby)
 (require 'ruby-electric)
 
-(load "rinari/rinari")
-(require 'rinari)
+;; (load "rinari/rinari")
+;; (require 'rinari)
 ;;(require 'autotest)
 ;;(require 'toggle)
 
