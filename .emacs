@@ -1,4 +1,4 @@
-y(defvar emacsd-dir
+(defvar emacsd-dir
   "~/.emacs.d/"
   "Emacs directory")
 
@@ -27,12 +27,6 @@ y(defvar emacsd-dir
  '(require-final-newline nil)
  '(standard-indent 2)
  '(tab-width 2)
- '(tabbar-background-color "black")
- '(tabbar-mode t nil (tabbar))
- '(tabbar-scroll-left-button (quote ((" <") " =")))
- '(tabbar-scroll-right-button (quote ((" >") " =")))
- '(tabbar-separator (quote ("  |  ")))
- '(tabbar-use-images nil)
  '(tool-bar-mode nil)
  '(visual-line-mode nil t))
 (custom-set-faces
