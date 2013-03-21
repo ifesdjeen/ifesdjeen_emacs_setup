@@ -167,7 +167,7 @@
   (define-key ruby-mode-map "\e\C-f" 'ruby-forward-sexp)
   (define-key ruby-mode-map "\e\C-p" 'ruby-beginning-of-block)
   (define-key ruby-mode-map "\e\C-n" 'ruby-end-of-block)
-  (define-key ruby-mode-map "\e\C-h" 'ruby-mark-defun)
+;  (define-key ruby-mode-map "\e\C-h" 'ruby-mark-defun)
   (define-key ruby-mode-map "\e\C-q" 'ruby-indent-exp)
   (define-key ruby-mode-map "\t" 'ruby-indent-command)
   (define-key ruby-mode-map "\C-c\C-e" 'ruby-insert-end)
@@ -525,7 +525,7 @@ The variable ruby-indent-level controls the amount of indentation.
          (t
           (setq in-string (point))
           (goto-char end))))
-       ((looking-at "/=") 
+       ((looking-at "/=")
         (goto-char pnt))
        ((looking-at "/")
         (cond
@@ -780,7 +780,7 @@ The variable ruby-indent-level controls the amount of indentation.
           (setq indent (ruby-indent-size (current-column) (nth 2 state))))
          (t
           (setq indent (+ (current-column) ruby-indent-level)))))
-       
+
        ((and (nth 2 state) (< (nth 2 state) 0)) ; in negative nest
         (setq indent (ruby-indent-size (current-column) (nth 2 state)))))
       (when indent
@@ -1117,7 +1117,7 @@ balanced expression is found."
                (concat "^[ \t]*\\(def\\|class\\|module\\)[ \t]+"
                        "\\("
                        ;; \\. and :: for class method
-                        "\\([A-Za-z_]" ruby-symbol-re "*\\|\\.\\|::" "\\)" 
+                        "\\([A-Za-z_]" ruby-symbol-re "*\\|\\.\\|::" "\\)"
                         "+\\)")
                nil t)
               (progn

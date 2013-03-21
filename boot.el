@@ -27,8 +27,8 @@
 (defvar byte-compile-verbose t)
 
 (load-initializer "yasnippet")
-(load-initializer "bundles")
 (load-initializer "keyboard")
+(load-initializer "bundles")
 (load-initializer "ui")
 
 (add-to-list 'safe-local-eval-forms '(clojure-swank-command . "lein2 jack-in %s"))

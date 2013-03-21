@@ -1,0 +1,1 @@
+(require 'dss-clipboard-integration)

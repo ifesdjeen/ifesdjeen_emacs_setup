@@ -6,6 +6,8 @@
 
 
 (require 'paredit)
+
+
 (require 'highlight-parentheses)
 
 ;; load bundle snippets
@@ -27,7 +29,16 @@
 (add-hook 'lisp-interaction-mode-hook (lambda () (paredit-mode +1)))
 (add-hook 'slime-repl-mode-hook       (lambda () (paredit-mode +1)))
 
-;(global-set-key (kbd "C-[") 'paredit-forward-slurp-sexp)
+;; (global-set-key (kbd "C-[") 'paredit-forward-slurp-sexp)
 (global-set-key (kbd "C-c C-i") 'ruby-stdlib-help)
+(global-set-key (kbd "<right>") 'paredit-forward-slurp-sexp)
+(global-set-key (kbd "<left>") 'paredit-forward-barf-sexp)
 
 (require 'nrepl)
+
+;; (define-key paredit-mode-map (kbd "M-[") nil)
+;; (eval-after-load 'paredit
+;;   '(progn
+;;      (define-key paredit-mode-map (kbd "C-[") 'paredit-forward-slurp-sexp)
+;;      ;; (define-key paredit-mode-map (kbd "M-[") nil)
+;;      ))

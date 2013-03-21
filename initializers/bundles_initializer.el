@@ -20,8 +20,9 @@
 
 (add-to-list 'load-path "bundles")
 
-(if window-system
-    (elbundle/load-elbundle "color-theme"))
+(elbundle/load-elbundle "color-theme")
+;; (if window-system
+;;     )
 
 (elbundle/load-elbundle "smooth-scrolling")
 
@@ -61,3 +62,4 @@
 
 (elbundle/load-elbundle "text")
 (elbundle/load-elbundle "ess")
+(elbundle/load-elbundle "clipboard")

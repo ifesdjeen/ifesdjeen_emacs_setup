@@ -1,12 +1,10 @@
-
 ;;
 ;; Window
 ;;
-
-(global-set-key [C-down] 'enlarge-window)
-(global-set-key [C-up] 'shrink-window)
-(global-set-key [C-right] 'enlarge-window-horizontally)
-(global-set-key [C-left] 'shrink-window-horizontally)
+;; (global-set-key [C-down] 'enlarge-window)
+;; (global-set-key [C-up] 'shrink-window)
+;; (global-set-key [C-right] 'enlarge-window-horizontally)
+;; (global-set-key [C-left] 'shrink-window-horizontally)
 
 (global-set-key  [(meta return)] 'toggle-fullscreen)
 
@@ -33,6 +31,7 @@
 (global-set-key [?\C-x ?\C-b] 'ibuffer) ;; great buffer switcher
 (global-set-key "\M-g"        'goto-line)
 
+(global-set-key "\C-xp" 'previous-multiframe-window)
 (global-set-key (kbd "C-<") 'previous-multiframe-window)
 (global-set-key (kbd "C->") 'next-multiframe-window)
 
@@ -133,5 +132,28 @@
   (interactive "r\np")
   (move-region start end (if (null n) 1 n)))
 
-(global-set-key (kbd "C-s-<up>") 'move-region-up)
-(global-set-key (kbd "C-s-<down>") 'move-region-down)
+(global-unset-key "\C-c\C-c")
+(global-set-key  "\C-c\C-c" 'comment-or-uncomment-region-or-line)
+
+(define-key input-decode-map "\e[1;5A" [C-up])
+(define-key input-decode-map "\e[1;5B" [C-down])
+(define-key input-decode-map "\e[1;5C" [C-right])
+(define-key input-decode-map "\e[1;5D" [C-left])
+
+(define-key input-decode-map "\e[1;9A" [M-up])
+(define-key input-decode-map "\e[1;9B" [M-down])
+(define-key input-decode-map "\e[1;9C" [M-right])
+(define-key input-decode-map "\e[1;9D" [M-left])
+
+(define-key input-decode-map "\e[1;10A" [M-S-up])
+(define-key input-decode-map "\e[1;10B" [M-S-down])
+(define-key input-decode-map "\e[1;10D" [M-S-left])
+(define-key input-decode-map "\e[1;10C" [M-S-right])
+
+(define-key input-decode-map "[OA" (kbd "<M-C-up>"))
+(define-key input-decode-map "[OB" (kbd "<M-C-down>"))
+(define-key input-decode-map "[OC" (kbd "<M-C-right>"))
+(define-key input-decode-map "[OD" (kbd "<M-C-left>"))
+
+(global-set-key "\M-p" 'scroll-down)
+(global-set-key "\M-n" 'scroll-up)

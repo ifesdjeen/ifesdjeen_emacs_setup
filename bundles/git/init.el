@@ -1,9 +1,8 @@
-(push "/usr/local/bin/git" exec-path)
-(require 'git-emacs-autoloads)
+(require 'magit)
+(require 'magit-blame)
 
-(require 'git-blame)
-(autoload 'git-blame-mode "git-blame"
-  "Minor mode for incremental blame for Git." t)
+(defalias 'g 'vc-git-grep)
 
-; (global-set-key "\M-w" 'git-pull-ff-only)
-;
+;; (add-to-list 'load-path "./mo-git-blame")
+;; (autoload 'mo-git-blame-file "mo-git-blame" nil t)
+;; (autoload 'mo-git-blame-current "mo-git-blame" nil t)
