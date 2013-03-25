@@ -37,7 +37,7 @@
 (require 'nrepl)
 
 ;; (define-key paredit-mode-map (kbd "M-[") nil)
-;; (eval-after-load 'paredit
+;; (eval-after-loadx 'paredit
 ;;   '(progn
 ;;      (define-key paredit-mode-map (kbd "C-[") 'paredit-forward-slurp-sexp)
 ;;      ;; (define-key paredit-mode-map (kbd "M-[") nil)

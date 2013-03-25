@@ -157,3 +157,25 @@
 
 (global-set-key "\M-p" 'scroll-down)
 (global-set-key "\M-n" 'scroll-up)
+
+
+(defun split-3-windows ()
+  (interactive)
+  (command-execute 'delete-other-windows)
+  (command-execute 'split-window-horizontally)
+  (command-execute 'next-multiframe-window)
+  (command-execute 'split-window-vertically)
+  (command-execute 'balance-windows))
+
+(global-set-key (kbd "C-x 4") 'split-3-windows)
+
+
+(defun split-3-windows-horisontally ()
+  (interactive)
+  (command-execute 'delete-other-windows)
+  (command-execute 'split-window-horizontally)
+  (command-execute 'next-multiframe-window)
+  (command-execute 'split-window-horizontally)
+  (command-execute 'balance-windows))
+
+(global-set-key (kbd "C-x 5") 'split-3-windows-horisontally)
